@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TaskFlow</title>
+<style>
+/* ── reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#2d3f55;border-radius:4px}
+
+/* ── animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── layout ── */
+#app{min-height:100vh}
+
+/* ── header ── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px;
+  background:#1e293b;border-bottom:1px solid #2d3f55;position:sticky;top:0;z-index:100;
+  gap:8px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.brand{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.brand-mark{color:#6366f1;font-size:17px}
+.brand-text{font-weight:800;font-size:16px;letter-spacing:-.5px;color:#e2e8f0}
+.tabs{display:flex;gap:2px;background:#162032;border-radius:8px;padding:3px;flex-shrink:0}
+.tab-btn{padding:5px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;
+  cursor:pointer;background:transparent;color:#4b6071;transition:all .15s}
+.tab-btn.active{background:#1e293b;color:#e2e8f0;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tab-btn:hover{color:#e2e8f0}
+.hdr-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* ── buttons ── */
+.gbtn{background:none;border:1px solid #2d3f55;padding:6px 10px;border-radius:8px;
+  font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;transition:background .15s}
+.gbtn:hover{background:#162032}
+.primary-btn{background:#6366f1;color:#fff;border:none;padding:8px 14px;border-radius:8px;
+  font-size:13px;font-weight:700;white-space:nowrap;transition:filter .15s}
+.primary-btn:hover{filter:brightness(1.1)}
+.clear-btn{background:none;border:1px solid rgba(239,68,68,.4);padding:6px 10px;
+  border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;white-space:nowrap;transition:background .15s}
+.clear-btn:hover{background:rgba(239,68,68,.1)}
+
+/* ── main ── */
+.main{max-width:760px;margin:0 auto;padding:18px 14px}
+
+/* ── filter row ── */
+.filter-row{display:flex;gap:7px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:140px;position:relative}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#4b6071;font-size:15px;pointer-events:none}
+.search-inp{width:100%;padding:8px 10px 8px 28px;border-radius:8px;border:1px solid #2d3f55;
+  font-size:13px;outline:none;background:#162032;color:#e2e8f0;transition:border-color .15s}
+.ci{padding:7px 9px;border-radius:8px;border:1px solid #2d3f55;font-size:12px;
+  background:#162032;color:#e2e8f0;cursor:pointer;outline:none;transition:border-color .15s}
+.ci:focus,.search-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.count-tag{font-size:11px;color:#4b6071;white-space:nowrap}
+.hint{text-align:center;font-size:11px;color:#4b6071;margin-top:4px;letter-spacing:.3px;user-select:none}
+
+/* ── task list ── */
+.task-list{display:flex;flex-direction:column;gap:6px}
+.empty{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty-ico{font-size:40px}
+.empty-txt{color:#4b6071;font-size:14px}
+
+/* ── task row ── */
+.trow{background:#1e293b;border-radius:11px;border:1.5px solid #253347;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);transition:box-shadow .15s,transform .12s,opacity .15s,border-color .12s;
+  cursor:grab;animation:fadeUp .2s ease both;overflow:hidden}
+.trow:hover{box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.trow.drag-over{border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.25);transform:scale(1.008)}
+.trow.dragging{opacity:.45;transform:scale(.985)}
+.trow-inner{display:flex;align-items:flex-start;gap:9px;padding:11px 12px}
+.drag-handle{color:#4b6071;font-size:14px;cursor:grab;padding-top:3px;flex-shrink:0;user-select:none;line-height:1}
+.status-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:none;
+  font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;transition:filter .15s}
+.status-btn:hover{filter:brightness(.88)}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.row-body{flex:1;min-width:0}
+.row-title-line{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:1px}
+.row-title{font-size:14px;font-weight:600;flex:1;min-width:0;line-height:1.35;color:#e2e8f0}
+.row-title.done{color:#4b6071;text-decoration:line-through}
+.time-pill{font-size:11px;color:#94a3b8;background:#162032;padding:2px 7px;border-radius:10px;
+  white-space:nowrap;flex-shrink:0;border:1px solid #2d3f55}
+.meta-line{display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap}
+.cat-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid;background:transparent}
+.pri-tag{font-size:10px;font-weight:600}
+.dim{font-size:10px;color:#4b6071}
+.prog-track{height:2px;background:#253347;border-radius:1px;margin-top:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:1px;transition:width .3s}
+.expand-body{margin-top:9px;padding-top:7px;border-top:1px dashed #253347}
+.sub-list{display:flex;flex-direction:column;gap:5px}
+.sub-item{display:flex;gap:7px;align-items:center}
+.sub-check{font-size:12px;flex-shrink:0}
+.sub-txt{font-size:13px}
+.note-txt{font-size:12px;color:#94a3b8;font-style:italic;background:#162032;border-radius:6px;
+  padding:5px 9px;margin-top:7px;border:1px solid #253347}
+.row-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.act-btn{background:none;border:none;font-size:13px;color:#4b6071;padding:2px 4px;border-radius:4px;transition:color .1s}
+.act-btn.edit:hover{color:#6366f1}
+.act-btn.del:hover{color:#ef4444}
+.expand-btn{background:none;border:none;font-size:11px;color:#4b6071;padding:2px 4px;border-radius:4px}
+
+/* ── modal overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:500;padding:14px}
+.modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:500px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;
+  max-height:92vh;border:1px solid #2d3f55;animation:modalIn .18s ease}
+.modal-head{display:flex;justify-content:space-between;align-items:center;
+  padding:15px 20px;border-bottom:1px solid #2d3f55}
+.modal-title{font-size:15px;font-weight:700;color:#e2e8f0}
+.modal-close{background:none;border:none;font-size:18px;color:#4b6071;line-height:1}
+.modal-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal-foot{display:flex;justify-content:flex-end;gap:7px;padding:12px 20px;border-top:1px solid #2d3f55}
+.field-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:#4b6071;margin-bottom:3px;display:block}
+.field-inp{display:block;width:100%;padding:8px 11px;border:1px solid #2d3f55;border-radius:8px;
+  font-size:13px;color:#e2e8f0;outline:none;background:#162032;transition:border-color .15s}
+.field-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sub-add-row{display:flex;gap:8px;margin-bottom:8px}
+.sub-add-btn{background:#6366f1;color:#fff;border:none;width:38px;height:38px;border-radius:8px;
+  font-size:18px;flex-shrink:0;transition:filter .15s}
+.sub-add-btn:hover{filter:brightness(1.1)}
+.sub-item-row{display:flex;align-items:center;gap:8px;background:#162032;border-radius:7px;
+  padding:6px 9px;border:1px solid #253347;margin-bottom:5px}
+.sub-chk-btn{background:none;border:1px solid #2d3f55;border-radius:5px;width:20px;height:20px;
+  font-size:10px;flex-shrink:0;color:#4b6071}
+.sub-chk-btn.done{color:#4ade80}
+.sub-del-btn{background:none;border:none;color:#4b6071;font-size:12px}
+.save-btn{background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:700;transition:filter .15s,opacity .15s}
+.save-btn:hover{filter:brightness(1.1)}
+.save-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── cat modal ── */
+.cat-modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;animation:modalIn .18s ease}
+.palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pal-swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .1s}
+.pal-swatch.active{border-color:#6366f1}
+.pal-swatch:hover{transform:scale(1.15)}
+.cat-list{display:flex;flex-direction:column;gap:6px}
+.cat-item{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:#162032;border-radius:9px;border:1px solid #253347}
+.cat-color-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.cat-name{flex:1;font-size:14px;color:#e2e8f0;font-weight:500}
+.del-cat-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);
+  color:#f87171;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;
+  transition:all .15s;letter-spacing:.3px}
+.del-cat-btn:hover{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.6)}
+.divider{border-top:1px solid #2d3f55;margin:4px 0}
+
+/* ── confirm modal ── */
+.confirm-card{background:#1e293b;border-radius:14px;max-width:360px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;
+  padding:24px 24px 20px;text-align:center;animation:modalIn .18s ease}
+.confirm-ico{font-size:28px;margin-bottom:12px}
+.confirm-title{font-weight:700;font-size:15px;color:#e2e8f0;margin-bottom:6px}
+.confirm-msg{font-size:13px;color:#94a3b8;margin-bottom:20px}
+.danger-btn{background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:9px;
+  font-size:13px;font-weight:700;transition:filter .15s}
+.danger-btn:hover{filter:brightness(1.1)}
+
+/* ── toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;
+  color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;border:1px solid #334155;
+  animation:toastIn .2s ease}
+
+/* ── dashboard ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi-card{background:#1e293b;border-radius:12px;padding:13px 16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);border:1px solid #2d3f55;
+  display:flex;flex-direction:column;gap:4px}
+.kpi-icon{font-size:20px}
+.kpi-val{font-family:monospace;font-size:22px;font-weight:600;color:#e2e8f0;line-height:1}
+.kpi-lbl{font-size:10px;color:#4b6071;text-transform:uppercase;letter-spacing:.5px}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 200px;gap:14px}
+.dash-grid2{display:grid;grid-template-columns:1fr 2fr;gap:14px}
+.dash-card{background:#1e293b;border-radius:12px;padding:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);border:1px solid #2d3f55}
+.dash-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:#4b6071;margin-bottom:12px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-lbl{font-size:12px;color:#94a3b8;width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:6px;background:#253347;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.bar-num{font-family:monospace;font-size:11px;color:#4b6071;width:18px;text-align:right}
+.ring-wrap{position:relative;width:110px;height:110px}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-family:monospace;font-size:20px;font-weight:600;color:#10b981}
+.ring-lbl{font-size:10px;color:#4b6071}
+.ring-sub{font-size:12px;color:#94a3b8;text-align:center}
+.sched-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #253347}
+.sched-time{font-family:monospace;font-size:11px;color:#4b6071;width:44px;flex-shrink:0}
+.sched-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sched-title{flex:1;font-size:13px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sched-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.cat-dash-card{border-radius:10px;padding:11px 13px;border:1px solid #253347}
+.cat-dash-name{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-dash-meta{display:flex;justify-content:space-between;font-size:11px;color:#4b6071;margin-bottom:6px}
+.cat-dash-bar{height:3px;background:#253347;border-radius:2px}
+.cat-dash-fill{height:100%;border-radius:2px}
+.no-data{font-size:13px;color:#4b6071}
+
+/* ── responsive ── */
+@media(max-width:640px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
+  .dash-grid,.dash-grid2{grid-template-columns:1fr!important}
+  .hdr{height:auto;padding:8px 12px}
+  .two-col{grid-template-columns:1fr!important}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ════════════════════════════════════════════
+   STATE & CONSTANTS
+════════════════════════════════════════════ */
+const LS_TASKS = "tf_tasks_v1";
+const LS_CATS  = "tf_cats_v1";
+const lsGet    = (k, fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb; } catch{ return fb; }};
+const lsSet    = (k, v)  => { try { localStorage.setItem(k,JSON.stringify(v)); } catch{} };
+
+const DEFAULT_CATS = [
+  {name:"Administrative",color:"#6366f1"},{name:"Meeting",color:"#f59e0b"},
+  {name:"Development",color:"#10b981"},{name:"Personal",color:"#ec4899"},
+  {name:"Support",color:"#3b82f6"},{name:"Family",color:"#f97316"},
+  {name:"Finance",color:"#14b8a6"},{name:"Spiritual",color:"#a855f7"},
+  {name:"Technical",color:"#ef4444"},
+];
+const SAMPLE = [
+  {id:"1",title:"Review Q2 budget report",category:"Finance",priority:"High",status:"In Progress",hours:2,time:"10:00",subtasks:[{id:"s1",title:"Check last year figures",done:true},{id:"s2",title:"Update projections",done:false}],note:""},
+  {id:"2",title:"Team standup",category:"Meeting",priority:"Medium",status:"Todo",hours:0.5,time:"09:00",subtasks:[],note:""},
+  {id:"3",title:"Fix login bug",category:"Development",priority:"Critical",status:"Review",hours:3,time:"",subtasks:[{id:"s3",title:"Reproduce error",done:true}],note:"Check staging logs"},
+  {id:"4",title:"Call insurance provider",category:"Administrative",priority:"Medium",status:"Todo",hours:1,time:"14:00",subtasks:[],note:""},
+  {id:"5",title:"Evening prayer",category:"Spiritual",priority:"Low",status:"Done",hours:0.5,time:"20:00",subtasks:[],note:""},
+  {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",hours:1,time:"15:30",subtasks:[],note:""},
+];
+const STATUSES = ["Todo","In Progress","Review","Done"];
+const SNEXT    = {"Todo":"In Progress","In Progress":"Review","Review":"Done","Done":"Todo"};
+const SBADGE   = {
+  "Todo":        {bg:"#1e293b",c:"#94a3b8"},
+  "In Progress": {bg:"#2d1f02",c:"#fbbf24"},
+  "Review":      {bg:"#0f1f3d",c:"#60a5fa"},
+  "Done":        {bg:"#052e16",c:"#4ade80"},
+};
+const PRIS = ["Low","Medium","High","Critical"];
+const PC   = {Low:"#94a3b8",Medium:"#f59e0b",High:"#f97316",Critical:"#ef4444"};
+const PAL  = ["#6366f1","#f59e0b","#10b981","#ec4899","#3b82f6","#f97316","#14b8a6","#a855f7","#ef4444","#0ea5e9","#84cc16","#d946ef"];
+
+let _uid = 300;
+const uid = () => String(++_uid);
+
+/* ── app state ── */
+let state = {
+  tasks:   lsGet(LS_TASKS, SAMPLE),
+  cats:    lsGet(LS_CATS,  DEFAULT_CATS),
+  view:    "tasks",
+  filterCat: "All",
+  filterSt:  "All",
+  search:    "",
+  modal:     null,   // null | {type:"add"} | {type:"edit",task} | {type:"cat"} | {type:"confirm"}
+  expandedIds: new Set(),
+  toast:     null,
+  toastTimer: null,
+  dragId:    null,
+  catColor:  PAL[0],   // for cat modal
+  catName:   "",
+  newSubtask: "",
+  editTask:   null,    // working copy for modal
+};
+
+/* ── persist ── */
+const persist = () => {
+  lsSet(LS_TASKS, state.tasks);
+  lsSet(LS_CATS,  state.cats);
+};
+
+/* ── render engine ── */
+const $app = document.getElementById("app");
+let rendering = false;
+const render = () => {
+  if (rendering) return;
+  rendering = true;
+  requestAnimationFrame(() => { rendering = false; _render(); });
+};
+
+/* ── toast ── */
+const showToast = msg => {
+  if (state.toastTimer) clearTimeout(state.toastTimer);
+  state.toast = msg;
+  state.toastTimer = setTimeout(() => { state.toast = null; render(); }, 2800);
+  render();
+};
+
+/* ── helpers ── */
+const catColor = name => (state.cats.find(c=>c.name===name)||{color:"#94a3b8"}).color;
+const filteredTasks = () => state.tasks.filter(t =>
+  (state.filterCat === "All" || t.category === state.filterCat) &&
+  (state.filterSt  === "All" || t.status   === state.filterSt)  &&
+  (state.search === "" || t.title.toLowerCase().includes(state.search.toLowerCase()))
+);
+
+/* ── actions ── */
+const cycleStatus = id => {
+  state.tasks = state.tasks.map(t => t.id===id ? {...t, status: SNEXT[t.status]} : t);
+  persist(); render();
+};
+const deleteTask = id => {
+  state.tasks = state.tasks.filter(t => t.id!==id);
+  persist(); render();
+};
+const upsertTask = task => {
+  const idx = state.tasks.findIndex(t=>t.id===task.id);
+  if (idx >= 0) state.tasks = state.tasks.map(t=>t.id===task.id?task:t);
+  else state.tasks = [...state.tasks, task];
+  persist(); render();
+};
+const clearDone = () => {
+  const n = state.tasks.filter(t=>t.status==="Done").length;
+  state.tasks = state.tasks.filter(t=>t.status!=="Done");
+  state.modal = null;
+  persist();
+  showToast(`🗑 ${n} completed task${n!==1?"s":""} removed`);
+};
+const reorderTasks = (fromId, toId) => {
+  if (fromId===toId) return;
+  const arr = [...state.tasks];
+  const fi = arr.findIndex(t=>t.id===fromId);
+  const ti = arr.findIndex(t=>t.id===toId);
+  if (fi<0||ti<0) return;
+  const [item] = arr.splice(fi,1);
+  arr.splice(ti,0,item);
+  state.tasks = arr;
+  persist(); render();
+};
+const exportCSV = () => {
+  const rows = [
+    ["Title","Category","Priority","Status","Hours","Time","Subtasks","Done","Note"],
+    ...state.tasks.map(t=>[
+      t.title,t.category,t.priority,t.status,t.hours,t.time||"",
+      t.subtasks.map(s=>s.title).join("; "),
+      `${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length}`,
+      t.note||""
+    ])
+  ];
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(csv)
+      .then(()=>showToast("✅ CSV copied to clipboard!"))
+      .catch(()=>fallbackCopy(csv));
+  } else { fallbackCopy(csv); }
+};
+const fallbackCopy = csv => {
+  const ta = document.createElement("textarea");
+  ta.value = csv; ta.style.cssText="position:fixed;top:-999px;left:-999px;opacity:0";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand("copy"); showToast("✅ CSV copied to clipboard!"); }
+  catch { showToast("❌ Copy failed — use a modern browser"); }
+  document.body.removeChild(ta);
+};
+
+/* ════════════════════════════════════════════
+   HTML BUILDERS
+════════════════════════════════════════════ */
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+/* ── status badge html ── */
+const statusBadge = (status, taskId) => {
+  const b = SBADGE[status];
+  return `<button class="status-btn" data-action="cycle" data-id="${esc(taskId)}"
+    style="background:${b.bg};color:${b.c}" title="Click to advance status">
+    <span class="status-dot" style="background:${b.c}"></span>${esc(status)}
+  </button>`;
+};
+
+/* ── task row html ── */
+const taskRowHTML = (task, delay) => {
+  const cc = catColor(task.category);
+  const isDone = task.status === "Done";
+  const ds = task.subtasks.filter(s=>s.done).length;
+  const pct = task.subtasks.length ? (ds/task.subtasks.length*100) : 0;
+  const hasExtra = task.subtasks.length > 0 || task.note;
+  const isExpanded = state.expandedIds.has(task.id);
+
+  let expandedHTML = "";
+  if (isExpanded && hasExtra) {
+    let subHTML = "";
+    if (task.subtasks.length) {
+      subHTML = `<div class="sub-list">${task.subtasks.map(s=>`
+        <div class="sub-item">
+          <span class="sub-check">${s.done?'<span style="color:#4ade80">✓</span>':'<span style="color:#4b6071">○</span>'}</span>
+          <span class="sub-txt" style="color:${s.done?'#4b6071':'#94a3b8'};text-decoration:${s.done?'line-through':'none'}">${esc(s.title)}</span>
+        </div>`).join('')}</div>`;
+    }
+    const noteHTML = task.note ? `<p class="note-txt">${esc(task.note)}</p>` : "";
+    expandedHTML = `<div class="expand-body">${subHTML}${noteHTML}</div>`;
+  }
+
+  const progHTML = task.subtasks.length ? `<div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${cc}"></div></div>` : "";
+
+  return `<div class="trow" data-id="${esc(task.id)}" draggable="true" style="animation-delay:${delay}ms">
+    <div class="trow-inner">
+      <span class="drag-handle">⠿</span>
+      ${statusBadge(task.status, task.id)}
+      <div class="row-body" data-action="${hasExtra?'toggle-expand':''}" data-id="${esc(task.id)}" style="cursor:${hasExtra?'pointer':'default'}">
+        <div class="row-title-line">
+          <span class="cat-dot" style="background:${cc}"></span>
+          <span class="row-title${isDone?' done':''}">${esc(task.title)}</span>
+          ${task.time?`<span class="time-pill">🕐 ${esc(task.time)}</span>`:''}
+        </div>
+        <div class="meta-line">
+          <span class="cat-tag" style="color:${cc};border-color:${cc}55">${esc(task.category)}</span>
+          <span class="pri-tag" style="color:${PC[task.priority]}">● ${esc(task.priority)}</span>
+          ${task.hours>0?`<span class="dim">⏱ ${task.hours}h</span>`:''}
+          ${task.subtasks.length?`<span class="dim">${ds}/${task.subtasks.length} subtasks</span>`:''}
+        </div>
+        ${progHTML}
+        ${expandedHTML}
+      </div>
+      <div class="row-actions">
+        <button class="act-btn edit" data-action="edit-task" data-id="${esc(task.id)}" title="Edit">✎</button>
+        <button class="act-btn del" data-action="delete-task" data-id="${esc(task.id)}" title="Delete">✕</button>
+        ${hasExtra?`<button class="expand-btn" data-action="toggle-expand" data-id="${esc(task.id)}">${isExpanded?'▲':'▼'}</button>`:''}
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ── task modal html ── */
+const taskModalHTML = () => {
+  const isNew = state.modal.type === "add";
+  const t = state.editTask;
+  const cats = state.cats;
+
+  const catOptions = cats.map(c=>`<option value="${esc(c.name)}"${t.category===c.name?" selected":""}>${esc(c.name)}</option>`).join("");
+  const priOptions = PRIS.map(p=>`<option value="${esc(p)}"${t.priority===p?" selected":""}>${esc(p)}</option>`).join("");
+  const stOptions  = STATUSES.map(s=>`<option value="${esc(s)}"${t.status===s?" selected":""}>${esc(s)}</option>`).join("");
+
+  const subRows = t.subtasks.map(s=>`
+    <div class="sub-item-row" data-sub-id="${esc(s.id)}">
+      <button class="sub-chk-btn${s.done?' done':''}" data-action="toggle-sub" data-sub-id="${esc(s.id)}">${s.done?'✓':'○'}</button>
+      <span style="flex:1;font-size:13px;color:${s.done?'#4b6071':'#94a3b8'};text-decoration:${s.done?'line-through':'none'}">${esc(s.title)}</span>
+      <button class="sub-del-btn" data-action="del-sub" data-sub-id="${esc(s.id)}">✕</button>
+    </div>`).join("");
+
+  return `<div class="overlay" id="modal-overlay">
+    <div class="modal-card" id="task-modal">
+      <div class="modal-head">
+        <span class="modal-title">${isNew?"New Task":"Edit Task"}</span>
+        <button class="modal-close" data-action="close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label class="field-lbl">Task Title *</label>
+          <input class="field-inp" id="m-title" placeholder="What needs to be done?" value="${esc(t.title)}" autocomplete="off"/>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field-lbl">Category</label>
+            <select class="field-inp" id="m-cat">${catOptions}</select>
+          </div>
+          <div>
+            <label class="field-lbl">Priority</label>
+            <select class="field-inp" id="m-pri">${priOptions}</select>
+          </div>
+        </div>
+        ${!isNew?`<div>
+          <label class="field-lbl">Status</label>
+          <select class="field-inp" id="m-status">${stOptions}</select>
+        </div>`:''}
+        <div class="two-col">
+          <div>
+            <label class="field-lbl">Hours Estimate</label>
+            <input class="field-inp" id="m-hours" type="number" min="0" step="0.5" value="${esc(t.hours)}"/>
+          </div>
+          <div>
+            <label class="field-lbl">Time <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+            <input class="field-inp" id="m-time" type="time" value="${esc(t.time)}"/>
+          </div>
+        </div>
+        ${!isNew?`<div>
+          <label class="field-lbl">Note <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+          <textarea class="field-inp" id="m-note" style="height:60px;resize:vertical" placeholder="Any extra context…">${esc(t.note)}</textarea>
+        </div>`:''}
+        <div>
+          <label class="field-lbl">Subtasks</label>
+          <div class="sub-add-row">
+            <input class="field-inp" id="m-newsub" placeholder="Add a subtask…" style="flex:1"/>
+            <button class="sub-add-btn" data-action="add-sub">+</button>
+          </div>
+          <div id="sub-list">${subRows}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="gbtn" data-action="close-modal">Cancel</button>
+        <button class="save-btn" id="save-task-btn" data-action="save-task">
+          ${isNew?"Create Task":"Save Changes"}
+        </button>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ── category modal html ── */
+const catModalHTML = () => {
+  const swatches = PAL.map(c=>`<button class="pal-swatch${c===state.catColor?' active':''}" style="background:${c}" data-action="set-pal-color" data-color="${c}" title="${c}"></button>`).join("");
+  const catList = state.cats.map(c=>`
+    <div class="cat-item">
+      <span class="cat-color-dot" style="background:${c.color};box-shadow:0 0 0 2px ${c.color}33"></span>
+      <span class="cat-name">${esc(c.name)}</span>
+      <button class="del-cat-btn" data-action="delete-cat" data-name="${esc(c.name)}">Delete</button>
+    </div>`).join("");
+  return `<div class="overlay" id="modal-overlay">
+    <div class="cat-modal-card">
+      <div class="modal-head">
+        <span class="modal-title">Manage Categories</span>
+        <button class="modal-close" data-action="close-modal">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:70vh">
+        <div>
+          <label class="field-lbl">Add New Category</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="field-inp" id="cat-name-inp" placeholder="Category name…" value="${esc(state.catName)}" style="flex:1"/>
+            <input type="color" id="cat-color-picker" value="${esc(state.catColor)}" style="width:38px;height:38px;border:1px solid #2d3f55;border-radius:8px;cursor:pointer;padding:2px;background:none;flex-shrink:0"/>
+            <button style="background:${esc(state.catColor)};color:#fff;border:none;width:38px;height:38px;border-radius:8px;font-size:20px;font-weight:700;flex-shrink:0" data-action="add-cat">+</button>
+          </div>
+          <div class="palette">${swatches}</div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <label class="field-lbl" style="margin-bottom:8px">Existing Categories</label>
+          <div class="cat-list">${catList}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="primary-btn" data-action="close-modal">Done</button>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ── confirm modal html ── */
+const confirmModalHTML = () => {
+  const n = state.tasks.filter(t=>t.status==="Done").length;
+  return `<div class="overlay" id="modal-overlay">
+    <div class="confirm-card">
+      <div class="confirm-ico">🗑</div>
+      <p class="confirm-title">Clear all completed tasks?</p>
+      <p class="confirm-msg">This will permanently delete <strong style="color:#ef4444">${n} completed task${n!==1?"s":""}</strong>. This cannot be undone.</p>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="gbtn" data-action="close-modal">Cancel</button>
+        <button class="danger-btn" data-action="clear-done">Yes, delete all</button>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ── dashboard html ── */
+const dashboardHTML = () => {
+  const tasks = state.tasks, cats = state.cats;
+  const tot = tasks.length;
+  const dn  = tasks.filter(t=>t.status==="Done").length;
+  const ip  = tasks.filter(t=>t.status==="In Progress").length;
+  const hrs = tasks.reduce((a,t)=>a+t.hours,0);
+  const pct = tot ? Math.round(dn/tot*100) : 0;
+  const dash = 263.8;
+  const arc  = pct * 2.638;
+
+  const bySt = STATUSES.map(s=>({l:s, n:tasks.filter(t=>t.status===s).length, c:SBADGE[s].c}));
+  const byPr = PRIS.map(p=>({l:p, n:tasks.filter(t=>t.priority===p).length, c:PC[p]}));
+  const byCat = cats.map(c=>({
+    l:c.name, c:c.color,
+    n:tasks.filter(t=>t.category===c.name).length,
+    h:tasks.filter(t=>t.category===c.name).reduce((a,t)=>a+t.hours,0)
+  })).filter(c=>c.n>0);
+  const sched = tasks.filter(t=>t.time&&t.status!=="Done").sort((a,b)=>a.time.localeCompare(b.time));
+
+  const barHTML = (items) => items.map(({l,n,c})=>`
+    <div class="bar-row">
+      <span class="bar-lbl">${esc(l)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${tot?n/tot*100:0}%;background:${c}"></div></div>
+      <span class="bar-num">${n}</span>
+    </div>`).join("");
+
+  const schedHTML = sched.length===0
+    ? `<p class="no-data">No timed tasks pending.</p>`
+    : sched.slice(0,8).map(t=>{
+        const c = catColor(t.category);
+        const b = SBADGE[t.status];
+        return `<div class="sched-row">
+          <span class="sched-time">${esc(t.time)}</span>
+          <span class="sched-dot" style="background:${c}"></span>
+          <span class="sched-title">${esc(t.title)}</span>
+          <span class="sched-badge" style="background:${b.bg};color:${b.c}">${esc(t.status)}</span>
+        </div>`;
+      }).join("");
+
+  const catCardsHTML = byCat.length===0
+    ? `<p class="no-data">No tasks yet.</p>`
+    : byCat.map(c=>`
+      <div class="cat-dash-card" style="background:#162032;border-left:3px solid ${c.c}">
+        <div class="cat-dash-name">${esc(c.l)}</div>
+        <div class="cat-dash-meta"><span>${c.n} task${c.n!==1?"s":""}</span><span>${c.h}h</span></div>
+        <div class="cat-dash-bar"><div class="cat-dash-fill" style="width:${tot?c.n/tot*100:0}%;background:${c.c}"></div></div>
+      </div>`).join("");
+
+  return `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="kpi-grid">
+      ${[
+        {icon:"📋",lbl:"Total",val:tot,col:"#6366f1"},
+        {icon:"✅",lbl:"Completed",val:dn,col:"#10b981"},
+        {icon:"⚡",lbl:"In Progress",val:ip,col:"#f59e0b"},
+        {icon:"⏱",lbl:"Hours",val:hrs+"h",col:"#3b82f6"},
+        {icon:"🎯",lbl:"Completion",val:pct+"%",col:"#ec4899"},
+      ].map(k=>`<div class="kpi-card" style="border-top:3px solid ${k.col}">
+        <span class="kpi-icon">${k.icon}</span>
+        <span class="kpi-val">${k.val}</span>
+        <span class="kpi-lbl">${k.lbl}</span>
+      </div>`).join("")}
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-title">By Status</div>${barHTML(bySt)}</div>
+      <div class="dash-card"><div class="dash-title">By Priority</div>${barHTML(byPr)}</div>
+      <div class="dash-card" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div class="dash-title">Progress</div>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#253347" stroke-width="10"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="10"
+              stroke-dasharray="${arc} ${dash}" stroke-linecap="round"
+              style="transition:stroke-dasharray .5s"/>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-pct">${pct}%</span>
+            <span class="ring-lbl">done</span>
+          </div>
+        </div>
+        <span class="ring-sub">${dn} of ${tot} completed</span>
+      </div>
+    </div>
+    <div class="dash-grid2">
+      <div class="dash-card">
+        <div class="dash-title">Scheduled (pending)</div>
+        ${schedHTML}
+      </div>
+      <div class="dash-card">
+        <div class="dash-title">By Category</div>
+        <div class="cat-grid">${catCardsHTML}</div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ── main render ── */
+const _render = () => {
+  const doneCount = state.tasks.filter(t=>t.status==="Done").length;
+  const list = filteredTasks();
+  const cats = state.cats;
+
+  const catOptions = ['<option value="All">All Categories</option>',
+    ...cats.map(c=>`<option value="${esc(c.name)}"${state.filterCat===c.name?" selected":""}>${esc(c.name)}</option>`)
+  ].join("");
+  const stOptions = ['<option value="All">All Statuses</option>',
+    ...STATUSES.map(s=>`<option value="${esc(s)}"${state.filterSt===s?" selected":""}>${esc(s)}</option>`)
+  ].join("");
+
+  const taskListHTML = list.length === 0
+    ? `<div class="empty">
+        <span class="empty-ico">📋</span>
+        <p class="empty-txt">No tasks found</p>
+        <button class="primary-btn" data-action="open-add" style="margin-top:4px">+ Add your first task</button>
+       </div>`
+    : list.map((t,i)=>taskRowHTML(t,i*22)).join("") +
+      `<p class="hint">⠿ Drag rows to reorder</p>`;
+
+  const mainContent = state.view === "tasks"
+    ? `<div class="filter-row">
+        <div class="search-wrap">
+          <span class="search-ico">⌕</span>
+          <input class="search-inp" id="search-inp" placeholder="Search tasks…" value="${esc(state.search)}"/>
+        </div>
+        <select class="ci" id="filter-cat">${catOptions}</select>
+        <select class="ci" id="filter-st">${stOptions}</select>
+        <span class="count-tag">${list.length} task${list.length!==1?"s":""}</span>
+       </div>
+       <div class="task-list" id="task-list">${taskListHTML}</div>`
+    : dashboardHTML();
+
+  const modalHTML = state.modal
+    ? (state.modal.type==="add"||state.modal.type==="edit") ? taskModalHTML()
+    : state.modal.type==="cat" ? catModalHTML()
+    : state.modal.type==="confirm" ? confirmModalHTML()
+    : ""
+    : "";
+
+  const toastHTML = state.toast
+    ? `<div class="toast">${esc(state.toast)}</div>`
+    : "";
+
+  $app.innerHTML = `
+    <div id="app-root">
+      <header class="hdr">
+        <div class="brand">
+          <span class="brand-mark">✦</span>
+          <span class="brand-text">TaskFlow</span>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn${state.view==="tasks"?" active":""}" data-action="set-view" data-view="tasks">Tasks</button>
+          <button class="tab-btn${state.view==="dashboard"?" active":""}" data-action="set-view" data-view="dashboard">Dashboard</button>
+        </div>
+        <div class="hdr-right">
+          <button class="gbtn" data-action="export-csv">⬇ CSV</button>
+          <button class="gbtn" data-action="open-cat">⊕ Category</button>
+          ${state.view==="tasks" && doneCount>0
+            ? `<button class="clear-btn" data-action="open-confirm">🗑 Clear Done (${doneCount})</button>`
+            : ""}
+          ${state.view==="tasks"
+            ? `<button class="primary-btn" data-action="open-add">+ Add Task</button>`
+            : ""}
+        </div>
+      </header>
+      <main class="main">${mainContent}</main>
+      ${modalHTML}
+      ${toastHTML}
+    </div>`;
+
+  bindEvents();
+};
+
+/* ════════════════════════════════════════════
+   EVENT BINDING
+════════════════════════════════════════════ */
+const bindEvents = () => {
+  /* ── delegated click handler ── */
+  document.getElementById("app-root").addEventListener("click", e => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+
+    if (action === "set-view") {
+      state.view = btn.dataset.view;
+      render(); return;
+    }
+    if (action === "open-add") {
+      state.editTask = {id:uid(), title:"", category:state.cats[0]?.name||"Personal",
+        priority:"Medium", status:"Todo", hours:1, time:"", subtasks:[], note:""};
+      state.modal = {type:"add"};
+      render();
+      setTimeout(()=>{ const el=document.getElementById("m-title"); if(el)el.focus(); },50);
+      return;
+    }
+    if (action === "open-cat") { state.modal={type:"cat"}; render(); return; }
+    if (action === "open-confirm") { state.modal={type:"confirm"}; render(); return; }
+    if (action === "close-modal") { state.modal=null; render(); return; }
+    if (action === "export-csv") { exportCSV(); return; }
+    if (action === "clear-done") { clearDone(); return; }
+
+    if (action === "cycle") {
+      cycleStatus(btn.dataset.id); return;
+    }
+    if (action === "delete-task") {
+      deleteTask(btn.dataset.id); return;
+    }
+    if (action === "edit-task") {
+      const task = state.tasks.find(t=>t.id===btn.dataset.id);
+      if (!task) return;
+      state.editTask = JSON.parse(JSON.stringify(task));
+      state.modal = {type:"edit"};
+      render();
+      setTimeout(()=>{ const el=document.getElementById("m-title"); if(el)el.focus(); },50);
+      return;
+    }
+    if (action === "toggle-expand") {
+      const id = btn.dataset.id;
+      if (state.expandedIds.has(id)) state.expandedIds.delete(id);
+      else state.expandedIds.add(id);
+      render(); return;
+    }
+    if (action === "save-task") {
+      saveTask(); return;
+    }
+    if (action === "add-sub") {
+      addSubtask(); return;
+    }
+    if (action === "toggle-sub") {
+      const sid = btn.dataset.subId;
+      state.editTask.subtasks = state.editTask.subtasks.map(s=>s.id===sid?{...s,done:!s.done}:s);
+      renderSubList(); return;
+    }
+    if (action === "del-sub") {
+      const sid = btn.dataset.subId;
+      state.editTask.subtasks = state.editTask.subtasks.filter(s=>s.id!==sid);
+      renderSubList(); return;
+    }
+    if (action === "set-pal-color") {
+      state.catColor = btn.dataset.color;
+      const picker = document.getElementById("cat-color-picker");
+      if (picker) picker.value = state.catColor;
+      document.querySelectorAll(".pal-swatch").forEach(sw=>{
+        sw.classList.toggle("active", sw.dataset.color===state.catColor);
+      });
+      const addBtn = document.querySelector("[data-action='add-cat']");
+      if (addBtn) addBtn.style.background = state.catColor;
+      return;
+    }
+    if (action === "add-cat") {
+      addCategory(); return;
+    }
+    if (action === "delete-cat") {
+      state.cats = state.cats.filter(c=>c.name!==btn.dataset.name);
+      persist(); render(); return;
+    }
+  });
+
+  /* ── overlay click to close ── */
+  const overlay = document.getElementById("modal-overlay");
+  if (overlay) {
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) { state.modal=null; render(); }
+    });
+  }
+
+  /* ── search input ── */
+  const searchInp = document.getElementById("search-inp");
+  if (searchInp) {
+    searchInp.addEventListener("input", e => {
+      state.search = e.target.value;
+      render();
+    });
+    searchInp.focus && searchInp.blur(); // don't steal focus
+  }
+
+  /* ── filter selects ── */
+  const fCat = document.getElementById("filter-cat");
+  if (fCat) fCat.addEventListener("change", e=>{ state.filterCat=e.target.value; render(); });
+  const fSt = document.getElementById("filter-st");
+  if (fSt) fSt.addEventListener("change", e=>{ state.filterSt=e.target.value; render(); });
+
+  /* ── cat modal: color picker ── */
+  const cp = document.getElementById("cat-color-picker");
+  if (cp) {
+    cp.addEventListener("input", e=>{
+      state.catColor = e.target.value;
+      document.querySelectorAll(".pal-swatch").forEach(sw=>{
+        sw.classList.toggle("active", sw.dataset.color===state.catColor);
+      });
+      const addBtn = document.querySelector("[data-action='add-cat']");
+      if (addBtn) addBtn.style.background = state.catColor;
+    });
+  }
+
+  /* ── cat name input — live sync ── */
+  const cni = document.getElementById("cat-name-inp");
+  if (cni) {
+    cni.addEventListener("input", e=>{ state.catName=e.target.value; });
+    cni.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addCategory(); }});
+  }
+
+  /* ── task modal: new subtask on Enter ── */
+  const ns = document.getElementById("m-newsub");
+  if (ns) {
+    ns.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addSubtask(); }});
+  }
+
+  /* ── title validation for save btn ── */
+  const titleInp = document.getElementById("m-title");
+  const saveBtn  = document.getElementById("save-task-btn");
+  if (titleInp && saveBtn) {
+    const updateSaveBtn = () => {
+      saveBtn.disabled = !titleInp.value.trim();
+    };
+    titleInp.addEventListener("input", updateSaveBtn);
+    updateSaveBtn();
+  }
+
+  /* ── drag and drop ── */
+  bindDrag();
+};
+
+/* ── save task ── */
+const saveTask = () => {
+  const t = state.editTask;
+  if (!t) return;
+  const titleEl  = document.getElementById("m-title");
+  const catEl    = document.getElementById("m-cat");
+  const priEl    = document.getElementById("m-pri");
+  const statusEl = document.getElementById("m-status");
+  const hoursEl  = document.getElementById("m-hours");
+  const timeEl   = document.getElementById("m-time");
+  const noteEl   = document.getElementById("m-note");
+
+  const title = titleEl ? titleEl.value.trim() : t.title;
+  if (!title) return;
+
+  const saved = {
+    ...t,
+    title,
+    category: catEl   ? catEl.value   : t.category,
+    priority: priEl   ? priEl.value   : t.priority,
+    status:   statusEl? statusEl.value: "Todo",
+    hours:    hoursEl ? parseFloat(hoursEl.value)||0 : t.hours,
+    time:     timeEl  ? timeEl.value  : t.time,
+    note:     noteEl  ? noteEl.value  : t.note,
+  };
+  const wasNew = state.modal.type === "add";
+  upsertTask(saved);
+  state.modal = null;
+  showToast(wasNew ? "✅ Task created" : "✏️ Task updated");
+};
+
+/* ── add subtask ── */
+const addSubtask = () => {
+  const inp = document.getElementById("m-newsub");
+  if (!inp || !inp.value.trim()) return;
+  const newSub = {id: uid(), title: inp.value.trim(), done: false};
+  state.editTask.subtasks = [...state.editTask.subtasks, newSub];
+  inp.value = "";
+  renderSubList();
+};
+
+/* ── render sub list only (no full re-render) ── */
+const renderSubList = () => {
+  const container = document.getElementById("sub-list");
+  if (!container) return;
+  const t = state.editTask;
+  container.innerHTML = t.subtasks.map(s=>`
+    <div class="sub-item-row" data-sub-id="${esc(s.id)}">
+      <button class="sub-chk-btn${s.done?' done':''}" data-action="toggle-sub" data-sub-id="${esc(s.id)}">${s.done?'✓':'○'}</button>
+      <span style="flex:1;font-size:13px;color:${s.done?'#4b6071':'#94a3b8'};text-decoration:${s.done?'line-through':'none'}">${esc(s.title)}</span>
+      <button class="sub-del-btn" data-action="del-sub" data-sub-id="${esc(s.id)}">✕</button>
+    </div>`).join("");
+};
+
+/* ── add category ── */
+const addCategory = () => {
+  const inp = document.getElementById("cat-name-inp");
+  const name = inp ? inp.value.trim() : state.catName;
+  if (!name) return;
+  if (state.cats.find(c=>c.name.toLowerCase()===name.toLowerCase())) return;
+  const cp = document.getElementById("cat-color-picker");
+  const color = cp ? cp.value : state.catColor;
+  state.cats = [...state.cats, {name, color}];
+  state.catName = "";
+  persist(); render();
+};
+
+/* ════════════════════════════════════════════
+   DRAG & DROP
+════════════════════════════════════════════ */
+const bindDrag = () => {
+  const list = document.getElementById("task-list");
+  if (!list) return;
+
+  list.addEventListener("dragstart", e => {
+    const row = e.target.closest(".trow");
+    if (!row) return;
+    state.dragId = row.dataset.id;
+    row.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
+
+  list.addEventListener("dragend", e => {
+    const row = e.target.closest(".trow");
+    if (row) row.classList.remove("dragging");
+    document.querySelectorAll(".trow.drag-over").forEach(r=>r.classList.remove("drag-over"));
+    state.dragId = null;
+  });
+
+  list.addEventListener("dragover", e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const row = e.target.closest(".trow");
+    document.querySelectorAll(".trow.drag-over").forEach(r=>r.classList.remove("drag-over"));
+    if (row && row.dataset.id !== state.dragId) row.classList.add("drag-over");
+  });
+
+  list.addEventListener("dragleave", e => {
+    const row = e.target.closest(".trow");
+    if (row) row.classList.remove("drag-over");
+  });
+
+  list.addEventListener("drop", e => {
+    e.preventDefault();
+    const row = e.target.closest(".trow");
+    if (!row) return;
+    row.classList.remove("drag-over");
+    const toId = row.dataset.id;
+    if (state.dragId && state.dragId !== toId) {
+      reorderTasks(state.dragId, toId);
+    }
+  });
+};
+
+/* ── boot ── */
+render();
+</script>
+</body>
+</html>
