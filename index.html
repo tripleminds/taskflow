@@ -285,12 +285,12 @@ const DEFAULT_CATS=[
   {name:"Technical",color:"#ef4444"},
 ];
 const SAMPLE=[
-  {id:"1",title:"Review Q2 budget report",category:"Finance",priority:"High",status:"In Progress",hours:2,weeks:0,time:"10:00",deadline:"2026-03-05",subtasks:[{id:"s1",title:"Check last year figures",done:true},{id:"s2",title:"Update projections",done:false}],note:""},
-  {id:"2",title:"Team standup",category:"Meeting",priority:"Medium",status:"Todo",hours:0.5,weeks:0,time:"09:00",deadline:"2026-03-06",subtasks:[],note:""},
-  {id:"3",title:"Fix login bug",category:"Development",priority:"Critical",status:"Review",hours:3,weeks:1,time:"",deadline:"2026-03-03",subtasks:[{id:"s3",title:"Reproduce error",done:true}],note:"Check staging logs"},
-  {id:"4",title:"Call insurance provider",category:"Administrative",priority:"Medium",status:"Todo",hours:1,weeks:0,time:"14:00",subtasks:[],note:""},
-  {id:"5",title:"Evening prayer",category:"Spiritual",priority:"Low",status:"Done",hours:0.5,weeks:0,time:"20:00",subtasks:[],note:""},
-  {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",hours:1,weeks:0,time:"15:30",deadline:"2026-03-10",subtasks:[],note:""},
+  {id:"1",title:"Review Q2 budget report",category:"Finance",priority:"High",status:"In Progress",durAmt:2,durUnit:"hours",time:"10:00",deadline:"2026-03-05",subtasks:[{id:"s1",title:"Check last year figures",done:true},{id:"s2",title:"Update projections",done:false}],note:""},
+  {id:"2",title:"Team standup",category:"Meeting",priority:"Medium",status:"Todo",durAmt:0.5,durUnit:"hours",time:"09:00",deadline:"2026-03-06",subtasks:[],note:""},
+  {id:"3",title:"Fix login bug",category:"Development",priority:"Critical",status:"Review",durAmt:1,durUnit:"weeks",time:"",deadline:"2026-03-03",subtasks:[{id:"s3",title:"Reproduce error",done:true}],note:"Check staging logs"},
+  {id:"4",title:"Call insurance provider",category:"Administrative",priority:"Medium",status:"Todo",durAmt:1,durUnit:"hours",time:"14:00",subtasks:[],note:""},
+  {id:"5",title:"Evening prayer",category:"Spiritual",priority:"Low",status:"Done",durAmt:0.5,durUnit:"hours",time:"20:00",subtasks:[],note:""},
+  {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",durAmt:1,durUnit:"hours",time:"15:30",deadline:"2026-03-10",subtasks:[],note:""},
 ];
 const STATUSES=["Todo","In Progress","Review","Done"];
 const SNEXT={"Todo":"In Progress","In Progress":"Review","Review":"Done","Done":"Todo"};
@@ -349,7 +349,11 @@ const filtered=()=>S.tasks.filter(t=>
   (S.search===""||t.title.toLowerCase().includes(S.search.toLowerCase()))
 );
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-const durStr=(h,w)=>{const p=[];if((w||0)>0)p.push(w+"w");if((h||0)>0)p.push(h+"h");return p.join(" ")||null;};
+const durStr=(amt,unit)=>{
+  if(!amt||amt<=0)return null;
+  const u={hours:"h",days:"d",weeks:"w"}[unit]||"h";
+  return amt+u;
+};
 const dlInfo=dl=>{
   if(!dl)return null;
   const today=new Date();today.setHours(0,0,0,0);
@@ -515,16 +519,16 @@ const togSubFromView=(taskId,subId)=>{
 const exportExcel=()=>{
   if(typeof XLSX==="undefined"){showToast("❌ XLSX library not loaded");return;}
   const rows=[
-    ["Title","Category","Priority","Status","Deadline","Hours","Weeks","Time","Subtasks","Subtasks Done","Note"],
+    ["Title","Category","Priority","Status","Deadline","Duration","Time","Subtasks","Subtasks Done","Note"],
     ...S.tasks.map(t=>{const subs=t.subtasks||[];return[t.title,t.category,t.priority,t.status,t.deadline||"—",
-      t.hours||0,t.weeks||0,t.time||"",
+      durStr(t.durAmt,t.durUnit)||"—",t.time||"",
       subs.map(s=>s.title).join("; "),
       subs.filter(s=>s.done).length+"/"+subs.length,
       t.note||""];})
   ];
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"]=[{wch:32},{wch:16},{wch:10},{wch:14},{wch:12},{wch:8},{wch:8},{wch:8},{wch:36},{wch:14},{wch:28}];
+  ws["!cols"]=[{wch:32},{wch:16},{wch:10},{wch:14},{wch:12},{wch:10},{wch:8},{wch:36},{wch:14},{wch:28}];
   XLSX.utils.book_append_sheet(wb,ws,"Tasks");
   XLSX.writeFile(wb,"TaskFlow.xlsx");
   showToast("✅ TaskFlow.xlsx downloaded!");
@@ -544,7 +548,7 @@ const exportPDF=()=>{
     head:[["Title","Category","Priority","Status","Deadline","Duration","Time","Subtasks"]],
     body:S.tasks.map(t=>{const subs=t.subtasks||[];return[
       t.title,t.category,t.priority,t.status,t.deadline||"—",
-      durStr(t.hours,t.weeks)||"—",t.time||"—",
+      durStr(t.durAmt,t.durUnit)||"—",t.time||"—",
       subs.length?subs.map(s=>(s.done?"✓ ":"○ ")+s.title).join("\n"):"—"
     ];}),
     styles:{fontSize:9,cellPadding:5,textColor:[226,232,240],fillColor:[15,23,42]},
@@ -567,7 +571,7 @@ const exportWord=()=>{
       <td>${esc(t.priority)}</td>
       <td>${esc(t.status)}</td>
       <td>${esc(t.deadline||"—")}</td>
-      <td>${esc(durStr(t.hours,t.weeks)||"—")}</td>
+      <td>${esc(durStr(t.durAmt,t.durUnit)||"—")}</td>
       <td>${esc(t.time||"—")}</td>
       <td>${subs.length?subs.map(s=>`${s.done?"✓":"○"} ${esc(s.title)}`).join("<br/>"):"—"}</td>
     </tr>`}).join("");
@@ -612,14 +616,14 @@ const sBadge=(status,id)=>{
 };
 
 const taskRow=(task,delay)=>{
-  task={weeks:0,hours:0,subtasks:[],note:"",...task};  /* safe defaults */
+  task={durAmt:1,durUnit:"hours",subtasks:[],note:"",...task};  /* safe defaults */
   const col=cc(task.category),isDone=task.status==="Done";
   const ds=task.subtasks.filter(s=>s.done).length;
   const pct=task.subtasks.length?ds/task.subtasks.length*100:0;
   const hasExtra=task.subtasks.length>0||task.note;
   const isExp=S.expandedIds.has(task.id);
   const isSel=S.selectedIds.has(task.id);
-  const dur=durStr(task.hours||0,task.weeks||0);
+  const dur=durStr(task.durAmt,task.durUnit);
   let expHtml="";
   if(isExp&&hasExtra){
     let subsHtml="";
@@ -696,12 +700,14 @@ const taskModalHtml=()=>{
         <div class="dur-group">
           <div class="dur-group-title">⏱ Duration Estimate</div>
           <div class="two-col">
-            <div><label class="field-lbl">Hours</label>
-              <input class="field-inp" id="m-hours" type="number" min="0" step="0.5" value="${esc(t.hours||0)}"/>
-              <div class="dur-hint">e.g. 2.5 hours</div></div>
-            <div><label class="field-lbl">Weeks</label>
-              <input class="field-inp" id="m-weeks" type="number" min="0" step="1" value="${esc(t.weeks||0)}"/>
-              <div class="dur-hint">e.g. 1 week</div></div>
+            <div><label class="field-lbl">Amount</label>
+              <input class="field-inp" id="m-duramt" type="number" min="0" step="0.5" value="${esc(t.durAmt||0)}" placeholder="e.g. 3"/></div>
+            <div><label class="field-lbl">Unit</label>
+              <select class="field-inp" id="m-durunit">
+                <option value="hours"${(t.durUnit||"hours")==="hours"?" selected":""}>Hours</option>
+                <option value="days"${(t.durUnit||"")==="days"?" selected":""}>Days</option>
+                <option value="weeks"${(t.durUnit||"")==="weeks"?" selected":""}>Weeks</option>
+              </select></div>
           </div>
         </div>
         <div class="two-col">
@@ -833,15 +839,21 @@ const dashHtml=()=>{
   const tasks=S.tasks,tot=tasks.length;
   const dn=tasks.filter(t=>t.status==="Done").length;
   const ip=tasks.filter(t=>t.status==="In Progress").length;
-  const th=tasks.reduce((a,t)=>a+(t.hours||0),0);
-  const tw=tasks.reduce((a,t)=>a+(t.weeks||0),0);
+  const th=tasks.filter(t=>!t.durUnit||t.durUnit==="hours").reduce((a,t)=>a+(t.durAmt||0),0);
+  const td=tasks.filter(t=>t.durUnit==="days").reduce((a,t)=>a+(t.durAmt||0),0);
+  const tw=tasks.filter(t=>t.durUnit==="weeks").reduce((a,t)=>a+(t.durAmt||0),0);
+  const durSummary=[th?""+th+"h":"",td?""+td+"d":"",tw?""+tw+"w":""].filter(Boolean).join(" ")||"0h";
   const pct=tot?Math.round(dn/tot*100):0;
   const bySt=STATUSES.map(s=>({l:s,n:tasks.filter(t=>t.status===s).length,c:SBADGE[s].c}));
   const byPr=PRIS.map(p=>({l:p,n:tasks.filter(t=>t.priority===p).length,c:PC[p]}));
   const byCat=S.cats.map(c=>({l:c.name,c:c.color,
     n:tasks.filter(t=>t.category===c.name).length,
-    h:tasks.filter(t=>t.category===c.name).reduce((a,t)=>a+(t.hours||0),0),
-    w:tasks.filter(t=>t.category===c.name).reduce((a,t)=>a+(t.weeks||0),0),
+    dur:(()=>{const ct=tasks.filter(t=>t.category===c.name);
+      const h=ct.filter(t=>!t.durUnit||t.durUnit==="hours").reduce((a,t)=>a+(t.durAmt||0),0);
+      const d=ct.filter(t=>t.durUnit==="days").reduce((a,t)=>a+(t.durAmt||0),0);
+      const w=ct.filter(t=>t.durUnit==="weeks").reduce((a,t)=>a+(t.durAmt||0),0);
+      return [h?""+h+"h":"",d?""+d+"d":"",w?""+w+"w":""].filter(Boolean).join(" ")||"—";
+    })(),
   })).filter(c=>c.n>0);
   const sched=tasks.filter(t=>t.time&&t.status!=="Done").sort((a,b)=>a.time.localeCompare(b.time));
   const bars=items=>items.map(({l,n,c})=>`<div class="bar-row">
@@ -867,7 +879,7 @@ const dashHtml=()=>{
         const today=new Date();today.setHours(0,0,0,0);
         const ov=tasks.filter(t=>t.deadline&&t.status!=="Done"&&new Date(t.deadline+"T00:00:00")<today).length;
         return [{i:"📋",l:"Total",v:tot,col:"#6366f1"},{i:"✅",l:"Completed",v:dn,col:"#10b981"},
-          {i:"⚡",l:"In Progress",v:ip,col:"#f59e0b"},{i:"⏱",l:"Total Hours",v:th+"h",col:"#3b82f6"},
+          {i:"⚡",l:"In Progress",v:ip,col:"#f59e0b"},{i:"⏱",l:"Total Duration",v:durSummary,col:"#3b82f6"},
           {i:"🚨",l:"Overdue",v:ov,col:ov>0?"#ef4444":"#4b6071"}];
       })().map(k=>
         `<div class="kpi-card" style="border-top:3px solid ${k.col}">
@@ -1109,13 +1121,13 @@ const bindEvents=()=>{
 /* ── helpers ── */
 const openAdd=()=>{
   S.editTask={id:uid(),title:"",category:S.cats[0]?.name||"Personal",
-    priority:"Medium",status:"Todo",hours:1,weeks:0,time:"",deadline:"",subtasks:[],note:""};
+    priority:"Medium",status:"Todo",durAmt:1,durUnit:"hours",time:"",deadline:"",subtasks:[],note:""};
   S.modal={type:"add"};render();
   setTimeout(()=>{const el=document.getElementById("m-title");if(el)el.focus();},50);
 };
 const openEdit=id=>{
   const t=S.tasks.find(t=>t.id===id);if(!t)return;
-  S.editTask=JSON.parse(JSON.stringify({weeks:0,hours:0,deadline:"",subtasks:[],note:"",...t}));
+  S.editTask=JSON.parse(JSON.stringify({durAmt:0,durUnit:"hours",deadline:"",subtasks:[],note:"",...t}));
   S.modal={type:"edit"};render();
   setTimeout(()=>{const el=document.getElementById("m-title");if(el)el.focus();},50);
 };
@@ -1127,7 +1139,7 @@ const saveTask=()=>{
   const saved={...t,title,
     category:gv("m-cat")||t.category,priority:gv("m-pri")||t.priority,
     status:gv("m-status")||"Todo",
-    hours:parseFloat(gv("m-hours"))||0,weeks:parseInt(gv("m-weeks"))||0,
+    durAmt:parseFloat(gv("m-duramt"))||0,durUnit:gv("m-durunit")||"hours",
     time:gv("m-time")||"",deadline:gv("m-deadline")||"",note:t.note||"",
   };
   const wasNew=S.modal.type==="add";
