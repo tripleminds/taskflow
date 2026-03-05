@@ -1087,9 +1087,17 @@ const bindDrag=()=>{
 };
 
 /* ── auto-reconnect on load if credentials saved ── */
-if(S.dbUrl&&S.roomCode)syncConnect();
+try{ if(S.dbUrl&&S.roomCode)syncConnect(); }catch(e){ console.warn("Sync reconnect failed:",e); }
 
-render();
+try{ render(); }catch(e){
+  console.error("Render error:",e);
+  document.getElementById("app").innerHTML=
+    `<div style="padding:40px;text-align:center;color:#ef4444;font-family:sans-serif">
+      <p style="font-size:18px;font-weight:700">⚠ App failed to load</p>
+      <p style="font-size:13px;margin-top:8px;color:#94a3b8">Open browser console (F12) for details.</p>
+      <p style="font-size:12px;margin-top:6px;color:#4b6071">Error: ${e.message}</p>
+     </div>`;
+}
 </script>
 </body>
 </html>
