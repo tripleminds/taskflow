@@ -436,6 +436,13 @@ const delSubFromView=(taskId,subId)=>{
   S.tasks=S.tasks.map(t=>t.id===taskId?{...t,subtasks:t.subtasks.filter(s=>s.id!==subId)}:t);
   save();render();
 };
+/* toggle subtask done/undone directly from expanded view */
+const togSubFromView=(taskId,subId)=>{
+  S.tasks=S.tasks.map(t=>t.id===taskId
+    ?{...t,subtasks:(t.subtasks||[]).map(s=>s.id===subId?{...s,done:!s.done}:s)}
+    :t);
+  save();render();
+};
 
 /* ══════════════════════════════════════════
    EXPORTS
@@ -554,8 +561,11 @@ const taskRow=(task,delay)=>{
     if(task.subtasks.length){
       subsHtml=`<div class="sub-view-list">${task.subtasks.map(s=>`
         <div class="sub-view-item">
-          <span class="sub-view-check" style="color:${s.done?"#4ade80":"#4b6071"}">${s.done?"✓":"○"}</span>
-          <span class="sub-view-txt" style="color:${s.done?"#4b6071":"#94a3b8"};text-decoration:${s.done?"line-through":"none"}">${esc(s.title)}</span>
+          <button class="sub-view-check" data-action="tog-sub-view" data-tid="${esc(task.id)}" data-sid="${esc(s.id)}"
+            style="background:none;border:none;cursor:pointer;font-size:13px;color:${s.done?"#4ade80":"#4b6071"};padding:0;flex-shrink:0"
+            title="Click to toggle">${s.done?"✓":"○"}</button>
+          <span class="sub-view-txt" style="color:${s.done?"#4b6071":"#94a3b8"};text-decoration:${s.done?"line-through":"none"};cursor:pointer;flex:1"
+            data-action="tog-sub-view" data-tid="${esc(task.id)}" data-sid="${esc(s.id)}">${esc(s.title)}</span>
           <button class="sub-view-del" data-action="del-sub-view" data-tid="${esc(task.id)}" data-sid="${esc(s.id)}" title="Remove subtask">✕</button>
         </div>`).join("")}</div>`;
     }
@@ -903,13 +913,6 @@ const _render=()=>{
 const bindEvents=()=>{
   const root=document.getElementById("root");if(!root)return;
 
-  /* close export menu on outside click */
-  document.addEventListener("click",e=>{
-    if(S.exportMenuOpen&&!e.target.closest(".export-wrap")){
-      S.exportMenuOpen=false;render();
-    }
-  },{once:true});
-
   root.addEventListener("click",e=>{
     const b=e.target.closest("[data-action]");if(!b)return;
     const a=b.dataset.action;
@@ -933,6 +936,7 @@ const bindEvents=()=>{
     if(a==="edit")             {openEdit(b.dataset.id);return;}
     if(a==="toggle-exp")       {toggleExp(b.dataset.id);return;}
     if(a==="del-sub-view")     {delSubFromView(b.dataset.tid,b.dataset.sid);return;}
+    if(a==="tog-sub-view")     {togSubFromView(b.dataset.tid,b.dataset.sid);return;}
     if(a==="save")             {saveTask();return;}
     if(a==="add-sub")          {addSub();return;}
     if(a==="tog-sub")          {togSub(b.dataset.sid);return;}
@@ -994,7 +998,7 @@ const openAdd=()=>{
 };
 const openEdit=id=>{
   const t=S.tasks.find(t=>t.id===id);if(!t)return;
-  S.editTask=JSON.parse(JSON.stringify({weeks:0,hours:0,...t}));
+  S.editTask=JSON.parse(JSON.stringify({weeks:0,hours:0,subtasks:[],note:"",...t}));
   S.modal={type:"edit"};render();
   setTimeout(()=>{const el=document.getElementById("m-title");if(el)el.focus();},50);
 };
@@ -1086,6 +1090,13 @@ const bindDrag=()=>{
     if(S.dragId&&S.dragId!==row.dataset.id)reorder(S.dragId,row.dataset.id);
   });
 };
+
+/* ── single persistent listener to close export menu on outside click ── */
+document.addEventListener("click",e=>{
+  if(S.exportMenuOpen&&!e.target.closest(".export-wrap")){
+    S.exportMenuOpen=false;render();
+  }
+});
 
 /* ── auto-reconnect on load if credentials saved ── */
 try{ if(S.dbUrl&&S.roomCode)syncConnect(); }catch(e){ console.warn("Sync reconnect failed:",e); }
