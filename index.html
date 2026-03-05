@@ -445,11 +445,11 @@ const exportExcel=()=>{
   if(typeof XLSX==="undefined"){showToast("❌ XLSX library not loaded");return;}
   const rows=[
     ["Title","Category","Priority","Status","Hours","Weeks","Time","Subtasks","Subtasks Done","Note"],
-    ...S.tasks.map(t=>[t.title,t.category,t.priority,t.status,
+    ...S.tasks.map(t=>{const subs=t.subtasks||[];return[t.title,t.category,t.priority,t.status,
       t.hours||0,t.weeks||0,t.time||"",
-      t.subtasks.map(s=>s.title).join("; "),
-      t.subtasks.filter(s=>s.done).length+"/"+t.subtasks.length,
-      t.note||""])
+      subs.map(s=>s.title).join("; "),
+      subs.filter(s=>s.done).length+"/"+subs.length,
+      t.note||""];})
   ];
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -471,11 +471,11 @@ const exportPDF=()=>{
   doc.autoTable({
     startY:66,
     head:[["Title","Category","Priority","Status","Duration","Time","Subtasks"]],
-    body:S.tasks.map(t=>[
+    body:S.tasks.map(t=>{const subs=t.subtasks||[];return[
       t.title,t.category,t.priority,t.status,
       durStr(t.hours,t.weeks)||"—",t.time||"—",
-      t.subtasks.length?t.subtasks.map(s=>(s.done?"✓ ":"○ ")+s.title).join("\n"):"—"
-    ]),
+      subs.length?subs.map(s=>(s.done?"✓ ":"○ ")+s.title).join("\n"):"—"
+    ];}),
     styles:{fontSize:9,cellPadding:5,textColor:[226,232,240],fillColor:[15,23,42]},
     headStyles:{fillColor:[30,41,59],textColor:[99,102,241],fontStyle:"bold",fontSize:9},
     alternateRowStyles:{fillColor:[22,32,50]},
@@ -489,7 +489,7 @@ const exportPDF=()=>{
 
 /* — Word (HTML → .doc) — */
 const exportWord=()=>{
-  const rows=S.tasks.map(t=>`
+  const rows=S.tasks.map(t=>{const subs=t.subtasks||[];return`
     <tr>
       <td>${esc(t.title)}</td>
       <td>${esc(t.category)}</td>
@@ -497,8 +497,8 @@ const exportWord=()=>{
       <td>${esc(t.status)}</td>
       <td>${esc(durStr(t.hours,t.weeks)||"—")}</td>
       <td>${esc(t.time||"—")}</td>
-      <td>${t.subtasks.length?t.subtasks.map(s=>`${s.done?"✓":"○"} ${esc(s.title)}`).join("<br/>"):"—"}</td>
-    </tr>`).join("");
+      <td>${subs.length?subs.map(s=>`${s.done?"✓":"○"} ${esc(s.title)}`).join("<br/>"):"—"}</td>
+    </tr>`}).join("");
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office"
     xmlns:w="urn:schemas-microsoft-com:office:word"
     xmlns="http://www.w3.org/TR/REC-html40">
@@ -540,6 +540,7 @@ const sBadge=(status,id)=>{
 };
 
 const taskRow=(task,delay)=>{
+  task={weeks:0,hours:0,subtasks:[],note:"",...task};  /* safe defaults */
   const col=cc(task.category),isDone=task.status==="Done";
   const ds=task.subtasks.filter(s=>s.done).length;
   const pct=task.subtasks.length?ds/task.subtasks.length*100:0;
