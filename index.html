@@ -324,7 +324,6 @@ let S={
 
 const persist=()=>{lsSet(LS_TASKS,S.tasks);lsSet(LS_CATS,S.cats);};
 
-/* ── render scheduler ── */
 /* ── render scheduler: debounced, max one full redraw per animation frame ── */
 let _renderTimer=null;
 const render=()=>{
@@ -671,7 +670,7 @@ const taskRow=(task,delay)=>{
   </div>`;
 };
 
-/* ── task modal (no Note) ── */
+/* ── task modal ── */
 const taskModalHtml=()=>{
   const isNew=S.modal.type==="add",t=S.editTask;
   const catOpts=S.cats.map(c=>`<option value="${esc(c.name)}"${t.category===c.name?" selected":""}>${esc(c.name)}</option>`).join("");
@@ -870,7 +869,7 @@ const dashHtml=()=>{
     byCat.map(c=>`<div class="cat-dash-card" style="background:#162032;border-left:3px solid ${c.c}">
       <div class="cat-dash-name">${esc(c.l)}</div>
       <div class="cat-dash-meta"><span>${c.n} task${c.n!==1?"s":""}</span>
-        <span>${[c.h?""+c.h+"h":"",c.w?""+c.w+"w":""].filter(Boolean).join(" ")||"—"}</span></div>
+        <span>${c.dur}</span></div>
       <div class="cat-dash-bar"><div class="cat-dash-fill" style="width:${tot?c.n/tot*100:0}%;background:${c.c}"></div></div>
     </div>`).join("");
   return `<div style="display:flex;flex-direction:column;gap:16px">
@@ -1071,12 +1070,10 @@ const bindEvents=()=>{
   if(si){
     let _st=null;
     si.addEventListener("input",e=>{
-      S.search=e.target.value;          /* update state immediately */
+      S.search=e.target.value;
       if(_st)clearTimeout(_st);
-      _st=setTimeout(()=>{             /* rebuild task list after 300ms pause */
-        /* only update the task list, not the whole page */
+      _st=setTimeout(()=>{
         const tl=document.getElementById("task-list");
-        const selAllRow=document.querySelector(".sel-all-row");
         const list=filtered();
         if(tl){
           if(list.length===0){
@@ -1086,10 +1083,8 @@ const bindEvents=()=>{
             bindDrag();
           }
         }
-        /* update count tag */
         const ct=document.querySelector(".count-tag");
         if(ct)ct.textContent=list.length+" task"+(list.length!==1?"s":"");
-        /* update sel-all checkbox */
         const sac=document.getElementById("sel-all");
         if(sac)sac.checked=list.length>0&&list.every(t=>S.selectedIds.has(t.id));
       },300);
@@ -1109,7 +1104,6 @@ const bindEvents=()=>{
   const ti=document.getElementById("m-title"),sb=document.getElementById("save-btn");
   if(ti&&sb){const upd=()=>{sb.disabled=!ti.value.trim();};ti.addEventListener("input",upd);upd();}
 
-  /* sync modal inputs — live update state */
   const sdi=document.getElementById("sync-db-inp");
   if(sdi)sdi.addEventListener("input",e=>{S.syncDbInput=e.target.value;});
   const sri=document.getElementById("sync-room-inp");
@@ -1224,6 +1218,41 @@ const bindDrag=()=>{
 document.addEventListener("click",e=>{
   if(S.exportMenuOpen&&!e.target.closest(".export-wrap")){
     S.exportMenuOpen=false;render();
+  }
+});
+
+/* ══════════════════════════════════════════
+   MULTI-TAB SYNC FIX
+   The browser fires a "storage" event in every OTHER
+   tab when localStorage is written. We listen here and
+   immediately pull the new data into this tab's memory,
+   preventing stale in-memory state from overwriting
+   changes made in a sibling tab on the next save().
+
+   Without this fix:
+     Tab A adds task → writes localStorage
+     Tab B (stale S.tasks) does anything → overwrites localStorage
+     Tab A's new task disappears
+
+   With this fix:
+     Tab A adds task → writes localStorage
+     Tab B receives "storage" event → updates S.tasks from localStorage
+     Both tabs stay in sync
+══════════════════════════════════════════ */
+window.addEventListener("storage",e=>{
+  /* Another tab changed the task list — pull it in immediately */
+  if(e.key===LS_TASKS&&e.newValue){
+    try{
+      const incoming=JSON.parse(e.newValue);
+      if(Array.isArray(incoming)){S.tasks=incoming;render();}
+    }catch{}
+  }
+  /* Another tab changed categories — pull it in immediately */
+  if(e.key===LS_CATS&&e.newValue){
+    try{
+      const incoming=JSON.parse(e.newValue);
+      if(Array.isArray(incoming)){S.cats=incoming;render();}
+    }catch{}
   }
 });
 
