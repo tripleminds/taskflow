@@ -121,6 +121,11 @@ input,select,textarea{font-family:inherit}
 .cat-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid;background:transparent}
 .pri-tag{font-size:10px;font-weight:600}
 .dim{font-size:10px;color:#4b6071}
+.dl-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;border:1px solid;white-space:nowrap;flex-shrink:0}
+.dl-overdue{color:#ef4444;border-color:#ef444455;background:rgba(239,68,68,.08)}
+.dl-today{color:#f59e0b;border-color:#f59e0b55;background:rgba(245,158,11,.08)}
+.dl-soon{color:#60a5fa;border-color:#60a5fa55;background:rgba(96,165,250,.08)}
+.dl-future{color:#4b6071;border-color:#2d3f55;background:transparent}
 .prog-track{height:2px;background:#253347;border-radius:1px;margin-top:6px;overflow:hidden}
 .prog-fill{height:100%;border-radius:1px;transition:width .3s}
 .expand-body{margin-top:9px;padding-top:7px;border-top:1px dashed #253347}
@@ -280,12 +285,12 @@ const DEFAULT_CATS=[
   {name:"Technical",color:"#ef4444"},
 ];
 const SAMPLE=[
-  {id:"1",title:"Review Q2 budget report",category:"Finance",priority:"High",status:"In Progress",hours:2,weeks:0,time:"10:00",subtasks:[{id:"s1",title:"Check last year figures",done:true},{id:"s2",title:"Update projections",done:false}],note:""},
-  {id:"2",title:"Team standup",category:"Meeting",priority:"Medium",status:"Todo",hours:0.5,weeks:0,time:"09:00",subtasks:[],note:""},
-  {id:"3",title:"Fix login bug",category:"Development",priority:"Critical",status:"Review",hours:3,weeks:1,time:"",subtasks:[{id:"s3",title:"Reproduce error",done:true}],note:"Check staging logs"},
+  {id:"1",title:"Review Q2 budget report",category:"Finance",priority:"High",status:"In Progress",hours:2,weeks:0,time:"10:00",deadline:"2026-03-05",subtasks:[{id:"s1",title:"Check last year figures",done:true},{id:"s2",title:"Update projections",done:false}],note:""},
+  {id:"2",title:"Team standup",category:"Meeting",priority:"Medium",status:"Todo",hours:0.5,weeks:0,time:"09:00",deadline:"2026-03-06",subtasks:[],note:""},
+  {id:"3",title:"Fix login bug",category:"Development",priority:"Critical",status:"Review",hours:3,weeks:1,time:"",deadline:"2026-03-03",subtasks:[{id:"s3",title:"Reproduce error",done:true}],note:"Check staging logs"},
   {id:"4",title:"Call insurance provider",category:"Administrative",priority:"Medium",status:"Todo",hours:1,weeks:0,time:"14:00",subtasks:[],note:""},
   {id:"5",title:"Evening prayer",category:"Spiritual",priority:"Low",status:"Done",hours:0.5,weeks:0,time:"20:00",subtasks:[],note:""},
-  {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",hours:1,weeks:0,time:"15:30",subtasks:[],note:""},
+  {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",hours:1,weeks:0,time:"15:30",deadline:"2026-03-10",subtasks:[],note:""},
 ];
 const STATUSES=["Todo","In Progress","Review","Done"];
 const SNEXT={"Todo":"In Progress","In Progress":"Review","Review":"Done","Done":"Todo"};
@@ -345,6 +350,16 @@ const filtered=()=>S.tasks.filter(t=>
 );
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const durStr=(h,w)=>{const p=[];if((w||0)>0)p.push(w+"w");if((h||0)>0)p.push(h+"h");return p.join(" ")||null;};
+const dlInfo=dl=>{
+  if(!dl)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=new Date(dl+"T00:00:00");
+  const diff=Math.round((d-today)/(1000*60*60*24));
+  if(diff<0) return {cls:"dl-overdue",label:"Overdue by "+Math.abs(diff)+"d"};
+  if(diff===0)return {cls:"dl-today",  label:"Due today"};
+  if(diff<=3) return {cls:"dl-soon",   label:"Due in "+diff+"d"};
+  return      {cls:"dl-future",  label:"📅 "+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})};
+};
 
 /* ══════════════════════════════════════════
    FIREBASE SYNC  (REST API + SSE)
@@ -500,8 +515,8 @@ const togSubFromView=(taskId,subId)=>{
 const exportExcel=()=>{
   if(typeof XLSX==="undefined"){showToast("❌ XLSX library not loaded");return;}
   const rows=[
-    ["Title","Category","Priority","Status","Hours","Weeks","Time","Subtasks","Subtasks Done","Note"],
-    ...S.tasks.map(t=>{const subs=t.subtasks||[];return[t.title,t.category,t.priority,t.status,
+    ["Title","Category","Priority","Status","Deadline","Hours","Weeks","Time","Subtasks","Subtasks Done","Note"],
+    ...S.tasks.map(t=>{const subs=t.subtasks||[];return[t.title,t.category,t.priority,t.status,t.deadline||"—",
       t.hours||0,t.weeks||0,t.time||"",
       subs.map(s=>s.title).join("; "),
       subs.filter(s=>s.done).length+"/"+subs.length,
@@ -509,7 +524,7 @@ const exportExcel=()=>{
   ];
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"]=[{wch:32},{wch:16},{wch:10},{wch:14},{wch:8},{wch:8},{wch:8},{wch:36},{wch:14},{wch:28}];
+  ws["!cols"]=[{wch:32},{wch:16},{wch:10},{wch:14},{wch:12},{wch:8},{wch:8},{wch:8},{wch:36},{wch:14},{wch:28}];
   XLSX.utils.book_append_sheet(wb,ws,"Tasks");
   XLSX.writeFile(wb,"TaskFlow.xlsx");
   showToast("✅ TaskFlow.xlsx downloaded!");
@@ -526,9 +541,9 @@ const exportPDF=()=>{
   doc.text("Generated: "+new Date().toLocaleString(),40,52);
   doc.autoTable({
     startY:66,
-    head:[["Title","Category","Priority","Status","Duration","Time","Subtasks"]],
+    head:[["Title","Category","Priority","Status","Deadline","Duration","Time","Subtasks"]],
     body:S.tasks.map(t=>{const subs=t.subtasks||[];return[
-      t.title,t.category,t.priority,t.status,
+      t.title,t.category,t.priority,t.status,t.deadline||"—",
       durStr(t.hours,t.weeks)||"—",t.time||"—",
       subs.length?subs.map(s=>(s.done?"✓ ":"○ ")+s.title).join("\n"):"—"
     ];}),
@@ -551,6 +566,7 @@ const exportWord=()=>{
       <td>${esc(t.category)}</td>
       <td>${esc(t.priority)}</td>
       <td>${esc(t.status)}</td>
+      <td>${esc(t.deadline||"—")}</td>
       <td>${esc(durStr(t.hours,t.weeks)||"—")}</td>
       <td>${esc(t.time||"—")}</td>
       <td>${subs.length?subs.map(s=>`${s.done?"✓":"○"} ${esc(s.title)}`).join("<br/>"):"—"}</td>
@@ -574,7 +590,7 @@ const exportWord=()=>{
     <table>
       <thead><tr>
         <th>Title</th><th>Category</th><th>Priority</th><th>Status</th>
-        <th>Duration</th><th>Time</th><th>Subtasks</th>
+        <th>Deadline</th><th>Duration</th><th>Time</th><th>Subtasks</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -632,6 +648,7 @@ const taskRow=(task,delay)=>{
           <span class="cat-dot" style="background:${col}"></span>
           <span class="row-title${isDone?" done":""}">${esc(task.title)}</span>
           ${task.time?`<span class="time-pill">🕐 ${esc(task.time)}</span>`:""}
+          ${(()=>{const di=dlInfo(task.deadline);return di&&task.status!=="Done"?`<span class="dl-pill ${di.cls}">${esc(di.label)}</span>`:""})()}
         </div>
         <div class="meta-line">
           <span class="cat-tag" style="color:${col};border-color:${col}55">${esc(task.category)}</span>
@@ -687,8 +704,12 @@ const taskModalHtml=()=>{
               <div class="dur-hint">e.g. 1 week</div></div>
           </div>
         </div>
-        <div><label class="field-lbl">Time <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
-          <input class="field-inp" id="m-time" type="time" value="${esc(t.time||"")}"/></div>
+        <div class="two-col">
+          <div><label class="field-lbl">Time <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+            <input class="field-inp" id="m-time" type="time" value="${esc(t.time||"")}"/></div>
+          <div><label class="field-lbl">Deadline <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+            <input class="field-inp" id="m-deadline" type="date" value="${esc(t.deadline||"")}"/></div>
+        </div>
         <div>
           <label class="field-lbl">Subtasks</label>
           <div class="sub-add-row">
@@ -842,9 +863,13 @@ const dashHtml=()=>{
     </div>`).join("");
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="kpi-grid">
-      ${[{i:"📋",l:"Total",v:tot,col:"#6366f1"},{i:"✅",l:"Completed",v:dn,col:"#10b981"},
-         {i:"⚡",l:"In Progress",v:ip,col:"#f59e0b"},{i:"⏱",l:"Total Hours",v:th+"h",col:"#3b82f6"},
-         {i:"📅",l:"Total Weeks",v:tw+"w",col:"#a855f7"}].map(k=>
+      ${(()=>{
+        const today=new Date();today.setHours(0,0,0,0);
+        const ov=tasks.filter(t=>t.deadline&&t.status!=="Done"&&new Date(t.deadline+"T00:00:00")<today).length;
+        return [{i:"📋",l:"Total",v:tot,col:"#6366f1"},{i:"✅",l:"Completed",v:dn,col:"#10b981"},
+          {i:"⚡",l:"In Progress",v:ip,col:"#f59e0b"},{i:"⏱",l:"Total Hours",v:th+"h",col:"#3b82f6"},
+          {i:"🚨",l:"Overdue",v:ov,col:ov>0?"#ef4444":"#4b6071"}];
+      })().map(k=>
         `<div class="kpi-card" style="border-top:3px solid ${k.col}">
           <span class="kpi-icon">${k.i}</span><span class="kpi-val">${k.v}</span><span class="kpi-lbl">${k.l}</span>
         </div>`).join("")}
@@ -1048,13 +1073,13 @@ const bindEvents=()=>{
 /* ── helpers ── */
 const openAdd=()=>{
   S.editTask={id:uid(),title:"",category:S.cats[0]?.name||"Personal",
-    priority:"Medium",status:"Todo",hours:1,weeks:0,time:"",subtasks:[],note:""};
+    priority:"Medium",status:"Todo",hours:1,weeks:0,time:"",deadline:"",subtasks:[],note:""};
   S.modal={type:"add"};render();
   setTimeout(()=>{const el=document.getElementById("m-title");if(el)el.focus();},50);
 };
 const openEdit=id=>{
   const t=S.tasks.find(t=>t.id===id);if(!t)return;
-  S.editTask=JSON.parse(JSON.stringify({weeks:0,hours:0,subtasks:[],note:"",...t}));
+  S.editTask=JSON.parse(JSON.stringify({weeks:0,hours:0,deadline:"",subtasks:[],note:"",...t}));
   S.modal={type:"edit"};render();
   setTimeout(()=>{const el=document.getElementById("m-title");if(el)el.focus();},50);
 };
@@ -1067,7 +1092,7 @@ const saveTask=()=>{
     category:gv("m-cat")||t.category,priority:gv("m-pri")||t.priority,
     status:gv("m-status")||"Todo",
     hours:parseFloat(gv("m-hours"))||0,weeks:parseInt(gv("m-weeks"))||0,
-    time:gv("m-time")||"",note:t.note||"",
+    time:gv("m-time")||"",deadline:gv("m-deadline")||"",note:t.note||"",
   };
   const wasNew=S.modal.type==="add";
   upsert(saved);S.modal=null;
