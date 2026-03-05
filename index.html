@@ -320,8 +320,12 @@ let S={
 const persist=()=>{lsSet(LS_TASKS,S.tasks);lsSet(LS_CATS,S.cats);};
 
 /* ── render scheduler ── */
-let _pend=false;
-const render=()=>{if(_pend)return;_pend=true;requestAnimationFrame(()=>{_pend=false;_render();});};
+/* ── render scheduler: debounced, max one full redraw per animation frame ── */
+let _renderTimer=null;
+const render=()=>{
+  if(_renderTimer)return;
+  _renderTimer=requestAnimationFrame(()=>{_renderTimer=null;_render();});
+};
 
 const showToast=msg=>{
   if(S.toastTimer)clearTimeout(S.toastTimer);
@@ -408,7 +412,26 @@ const save=()=>{
 /* ══════════════════════════════════════════
    TASK ACTIONS
 ══════════════════════════════════════════ */
-const cycleStatus=id=>{S.tasks=S.tasks.map(t=>t.id===id?{...t,status:SNEXT[t.status]}:t);save();render();};
+const cycleStatus=id=>{
+  S.tasks=S.tasks.map(t=>t.id===id?{...t,status:SNEXT[t.status]}:t);
+  save();
+  /* surgical update — just swap the badge text/colors, skip full redraw */
+  const task=S.tasks.find(t=>t.id===id);
+  if(!task){render();return;}
+  const btn=document.querySelector(`.status-btn[data-id="${id}"]`);
+  if(!btn){render();return;}
+  const b=SBADGE[task.status];
+  btn.style.background=b.bg;btn.style.color=b.c;
+  const dot=btn.querySelector(".status-dot");if(dot)dot.style.background=b.c;
+  btn.childNodes[btn.childNodes.length-1].textContent=task.status;
+  /* also update done strikethrough on title */
+  const titleEl=btn.closest(".trow-inner")?.querySelector(".row-title");
+  if(titleEl){titleEl.classList.toggle("done",task.status==="Done");}
+  /* update clear-done button count if present */
+  const clrBtn=document.querySelector(".clear-btn");
+  const doneN=S.tasks.filter(t=>t.status==="Done").length;
+  if(clrBtn){if(doneN>0)clrBtn.textContent="🗑 Clear Done ("+doneN+")";else clrBtn.remove();}
+};
 const deleteOne=id=>{S.tasks=S.tasks.filter(t=>t.id!==id);S.selectedIds.delete(id);save();render();};
 const deleteSelected=()=>{
   const n=S.selectedIds.size;
@@ -436,12 +459,38 @@ const delSubFromView=(taskId,subId)=>{
   S.tasks=S.tasks.map(t=>t.id===taskId?{...t,subtasks:t.subtasks.filter(s=>s.id!==subId)}:t);
   save();render();
 };
-/* toggle subtask done/undone directly from expanded view */
+/* toggle subtask done/undone directly from expanded view — surgical DOM update */
 const togSubFromView=(taskId,subId)=>{
   S.tasks=S.tasks.map(t=>t.id===taskId
     ?{...t,subtasks:(t.subtasks||[]).map(s=>s.id===subId?{...s,done:!s.done}:s)}
     :t);
-  save();render();
+  save();
+  const task=S.tasks.find(t=>t.id===taskId);
+  const sub=task?.subtasks.find(s=>s.id===subId);
+  if(!sub){render();return;}
+  /* update the check icon */
+  const row=document.querySelector(`[data-action="tog-sub-view"][data-sid="${subId}"]`);
+  if(row){
+    row.style.color=sub.done?"#4ade80":"#4b6071";
+    row.textContent=sub.done?"✓":"○";
+  }
+  /* update the text strikethrough */
+  const txt=document.querySelector(`span[data-action="tog-sub-view"][data-sid="${subId}"]`);
+  if(txt){
+    txt.style.color=sub.done?"#4b6071":"#94a3b8";
+    txt.style.textDecoration=sub.done?"line-through":"none";
+  }
+  /* update progress bar */
+  const trow=document.querySelector(`.trow[data-id="${taskId}"]`);
+  if(trow){
+    const subs=task.subtasks;
+    const pct=subs.length?subs.filter(s=>s.done).length/subs.length*100:0;
+    const fill=trow.querySelector(".prog-fill");
+    if(fill)fill.style.width=pct+"%";
+    const dimEl=trow.querySelector(".dim:last-of-type");
+    if(dimEl&&dimEl.textContent.includes("subtasks"))
+      dimEl.textContent=subs.filter(s=>s.done).length+"/"+subs.length+" subtasks";
+  }
 };
 
 /* ══════════════════════════════════════════
@@ -965,7 +1014,14 @@ const bindEvents=()=>{
   if(ov)ov.addEventListener("click",e=>{if(e.target===ov){S.modal=null;render();}});
 
   const si=document.getElementById("search-inp");
-  if(si)si.addEventListener("input",e=>{S.search=e.target.value;render();});
+  if(si){
+    let _st=null;
+    si.addEventListener("input",e=>{
+      S.search=e.target.value;
+      if(_st)clearTimeout(_st);
+      _st=setTimeout(render,180);
+    });
+  }
   const fc=document.getElementById("fcat");if(fc)fc.addEventListener("change",e=>{S.filterCat=e.target.value;render();});
   const fs=document.getElementById("fst");if(fs)fs.addEventListener("change",e=>{S.filterSt=e.target.value;render();});
 
