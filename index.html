@@ -950,6 +950,12 @@ const _render=()=>{
     :""
     :"";
 
+  /* ── save focus state before wiping DOM ── */
+  const _fa=document.activeElement;
+  const _focusId=_fa?_fa.id:null;
+  const _selStart=(_fa&&_fa.selectionStart!=null)?_fa.selectionStart:null;
+  const _selEnd=(_fa&&_fa.selectionEnd!=null)?_fa.selectionEnd:null;
+
   document.getElementById("app").innerHTML=`<div id="root">
     <header class="hdr">
       <div class="brand"><span class="brand-mark">✦</span><span class="brand-text">TaskFlow</span></div>
@@ -979,6 +985,17 @@ const _render=()=>{
     ${S.toast?`<div class="toast">${esc(S.toast)}</div>`:""}
   </div>`;
   bindEvents();
+
+  /* ── restore focus & cursor after DOM rebuild ── */
+  if(_focusId){
+    const el=document.getElementById(_focusId);
+    if(el){
+      el.focus();
+      if(_selStart!=null&&el.setSelectionRange){
+        try{el.setSelectionRange(_selStart,_selEnd);}catch(e){}
+      }
+    }
+  }
 };
 
 /* ══════════════════════════════════════════
@@ -1042,9 +1059,28 @@ const bindEvents=()=>{
   if(si){
     let _st=null;
     si.addEventListener("input",e=>{
-      S.search=e.target.value;
+      S.search=e.target.value;          /* update state immediately */
       if(_st)clearTimeout(_st);
-      _st=setTimeout(render,180);
+      _st=setTimeout(()=>{             /* rebuild task list after 300ms pause */
+        /* only update the task list, not the whole page */
+        const tl=document.getElementById("task-list");
+        const selAllRow=document.querySelector(".sel-all-row");
+        const list=filtered();
+        if(tl){
+          if(list.length===0){
+            tl.innerHTML=`<div class="empty"><span class="empty-ico">📋</span><p class="empty-txt">No tasks found</p></div>`;
+          } else {
+            tl.innerHTML=list.map((t,i)=>taskRow(t,0)).join("")+`<p class="hint">⠿ Drag to reorder · hover subtasks to delete them</p>`;
+            bindDrag();
+          }
+        }
+        /* update count tag */
+        const ct=document.querySelector(".count-tag");
+        if(ct)ct.textContent=list.length+" task"+(list.length!==1?"s":"");
+        /* update sel-all checkbox */
+        const sac=document.getElementById("sel-all");
+        if(sac)sac.checked=list.length>0&&list.every(t=>S.selectedIds.has(t.id));
+      },300);
     });
   }
   const fc=document.getElementById("fcat");if(fc)fc.addEventListener("change",e=>{S.filterCat=e.target.value;render();});
