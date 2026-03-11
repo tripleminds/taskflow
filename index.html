@@ -4,9 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>TaskFlow</title>
-<!-- SheetJS for Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- jsPDF + autoTable for PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -20,85 +18,56 @@ input,select,textarea{font-family:inherit}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 #app{min-height:100vh}
-/* ── header ── */
-.hdr{display:flex;align-items:center;padding:0 20px;height:54px;background:#1e293b;
-  border-bottom:1px solid #2d3f55;position:sticky;top:0;z-index:100;gap:8px;
-  flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.hdr{display:flex;align-items:center;padding:0 20px;height:54px;background:#1e293b;border-bottom:1px solid #2d3f55;position:sticky;top:0;z-index:100;gap:8px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .brand{display:flex;align-items:center;gap:7px;flex-shrink:0}
 .brand-mark{color:#6366f1;font-size:18px}
 .brand-text{font-weight:800;font-size:16px;letter-spacing:-.5px;color:#e2e8f0}
 .tabs{display:flex;gap:2px;background:#162032;border-radius:8px;padding:3px;flex-shrink:0}
-.tab-btn{padding:5px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;
-  cursor:pointer;background:transparent;color:#4b6071;transition:all .15s}
+.tab-btn{padding:5px 14px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#4b6071;transition:all .15s}
 .tab-btn.active{background:#1e293b;color:#e2e8f0;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .tab-btn:hover{color:#e2e8f0}
 .hdr-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
-/* ── sync status ── */
 .sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;
-  border:1px solid #2d3f55;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;
-  transition:background .15s;white-space:nowrap}
+.sync-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid #2d3f55;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;transition:background .15s;white-space:nowrap}
 .sync-badge:hover{background:#162032}
-/* ── buttons ── */
-.gbtn{background:none;border:1px solid #2d3f55;padding:6px 10px;border-radius:8px;
-  font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;transition:background .15s}
+.gbtn{background:none;border:1px solid #2d3f55;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;transition:background .15s}
 .gbtn:hover{background:#162032}
-.primary-btn{background:#6366f1;color:#fff;border:none;padding:8px 14px;border-radius:8px;
-  font-size:13px;font-weight:700;white-space:nowrap;transition:filter .15s}
+.primary-btn{background:#6366f1;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;white-space:nowrap;transition:filter .15s}
 .primary-btn:hover{filter:brightness(1.1)}
-.clear-btn{background:none;border:1px solid rgba(239,68,68,.4);padding:6px 10px;
-  border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;white-space:nowrap;transition:background .15s}
+.clear-btn{background:none;border:1px solid rgba(239,68,68,.4);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;white-space:nowrap;transition:background .15s}
 .clear-btn:hover{background:rgba(239,68,68,.1)}
-/* ── export dropdown ── */
 .export-wrap{position:relative}
-.export-btn{background:none;border:1px solid rgba(74,222,128,.45);padding:6px 10px;
-  border-radius:8px;font-size:12px;font-weight:600;color:#4ade80;white-space:nowrap;transition:background .15s}
+.export-btn{background:none;border:1px solid rgba(74,222,128,.45);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;color:#4ade80;white-space:nowrap;transition:background .15s}
 .export-btn:hover{background:rgba(74,222,128,.08)}
-.export-menu{position:absolute;top:calc(100% + 5px);right:0;background:#1e293b;
-  border:1px solid #2d3f55;border-radius:10px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.4);
-  z-index:200;overflow:hidden;animation:fadeUp .12s ease;display:none}
+.export-menu{position:absolute;top:calc(100% + 5px);right:0;background:#1e293b;border:1px solid #2d3f55;border-radius:10px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:200;overflow:hidden;animation:fadeUp .12s ease;display:none}
 .export-menu.open{display:block}
-.export-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;
-  color:#94a3b8;cursor:pointer;transition:background .12s;border:none;background:none;
-  width:100%;text-align:left}
+.export-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;color:#94a3b8;cursor:pointer;transition:background .12s;border:none;background:none;width:100%;text-align:left}
 .export-item:hover{background:#162032;color:#e2e8f0}
 .export-item-icon{font-size:15px;width:18px;text-align:center}
-/* ── bulk bar ── */
-.bulk-bar{display:flex;align-items:center;gap:8px;background:#1a243a;border:1px solid #334d6e;
-  border-radius:9px;padding:8px 14px;margin-bottom:10px;animation:fadeUp .15s ease}
+.bulk-bar{display:flex;align-items:center;gap:8px;background:#1a243a;border:1px solid #334d6e;border-radius:9px;padding:8px 14px;margin-bottom:10px;animation:fadeUp .15s ease}
 .bulk-count{font-size:13px;color:#94a3b8;flex:1}
 .bulk-count strong{color:#e2e8f0}
-.bulk-del-btn{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;
-  font-size:12px;font-weight:700;padding:5px 12px;border-radius:7px;transition:all .15s}
+.bulk-del-btn{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;font-size:12px;font-weight:700;padding:5px 12px;border-radius:7px;transition:all .15s}
 .bulk-del-btn:hover{background:rgba(239,68,68,.28)}
 .bulk-clr-btn{background:none;border:none;color:#4b6071;font-size:12px;padding:5px 8px;border-radius:7px}
 .bulk-clr-btn:hover{color:#94a3b8}
-/* ── main (70% centered) ── */
 .main{width:70%;margin:0 auto;padding:18px 0}
-/* ── filter row ── */
 .filter-row{display:flex;gap:7px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
 .search-wrap{flex:1;min-width:160px;position:relative}
 .search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#4b6071;font-size:15px;pointer-events:none}
-.search-inp{width:100%;padding:8px 10px 8px 30px;border-radius:8px;border:1px solid #2d3f55;
-  font-size:13px;outline:none;background:#162032;color:#e2e8f0;transition:border-color .15s}
-.ci{padding:7px 9px;border-radius:8px;border:1px solid #2d3f55;font-size:12px;
-  background:#162032;color:#e2e8f0;cursor:pointer;outline:none;transition:border-color .15s}
+.search-inp{width:100%;padding:8px 10px 8px 30px;border-radius:8px;border:1px solid #2d3f55;font-size:13px;outline:none;background:#162032;color:#e2e8f0;transition:border-color .15s}
+.ci{padding:7px 9px;border-radius:8px;border:1px solid #2d3f55;font-size:12px;background:#162032;color:#e2e8f0;cursor:pointer;outline:none;transition:border-color .15s}
 .ci:focus,.search-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 .count-tag{font-size:11px;color:#4b6071;white-space:nowrap}
 .sel-all-row{display:flex;align-items:center;gap:8px;padding:0 4px;margin-bottom:6px}
 .sel-all-chk{width:15px;height:15px;accent-color:#6366f1;cursor:pointer}
 .sel-all-lbl{font-size:12px;color:#4b6071;cursor:pointer;user-select:none}
 .hint{text-align:center;font-size:11px;color:#4b6071;margin-top:4px;letter-spacing:.3px;user-select:none}
-/* ── task list ── */
 .task-list{display:flex;flex-direction:column;gap:6px}
 .empty{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .empty-ico{font-size:40px}
 .empty-txt{color:#4b6071;font-size:14px}
-/* ── task row ── */
-.trow{background:#1e293b;border-radius:11px;border:1.5px solid #253347;
-  box-shadow:0 1px 3px rgba(0,0,0,.3);
-  transition:box-shadow .15s,transform .12s,opacity .15s,border-color .12s;
-  animation:fadeUp .2s ease both;overflow:hidden}
+.trow{background:#1e293b;border-radius:11px;border:1.5px solid #253347;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:box-shadow .15s,transform .12s,opacity .15s,border-color .12s;animation:fadeUp .2s ease both;overflow:hidden}
 .trow:hover{box-shadow:0 4px 14px rgba(0,0,0,.4)}
 .trow.selected{border-color:#6366f1;background:#1a2745}
 .trow.drag-over{border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.25);transform:scale(1.003)}
@@ -106,8 +75,7 @@ input,select,textarea{font-family:inherit}
 .trow-inner{display:flex;align-items:flex-start;gap:9px;padding:11px 14px}
 .task-chk{width:15px;height:15px;accent-color:#6366f1;cursor:pointer;flex-shrink:0;margin-top:4px}
 .drag-handle{color:#4b6071;font-size:14px;cursor:grab;padding-top:3px;flex-shrink:0;user-select:none;line-height:1}
-.status-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:none;
-  font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;transition:filter .15s;cursor:pointer}
+.status-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:none;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px;transition:filter .15s;cursor:pointer}
 .status-btn:hover{filter:brightness(.88)}
 .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .row-body{flex:1;min-width:0}
@@ -115,8 +83,7 @@ input,select,textarea{font-family:inherit}
 .cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:1px}
 .row-title{font-size:14px;font-weight:600;flex:1;min-width:0;line-height:1.35;color:#e2e8f0}
 .row-title.done{color:#4b6071;text-decoration:line-through}
-.time-pill{font-size:11px;color:#94a3b8;background:#162032;padding:2px 7px;border-radius:10px;
-  white-space:nowrap;flex-shrink:0;border:1px solid #2d3f55}
+.time-pill{font-size:11px;color:#94a3b8;background:#162032;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;border:1px solid #2d3f55}
 .meta-line{display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap}
 .cat-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid;background:transparent}
 .pri-tag{font-size:10px;font-weight:600}
@@ -129,60 +96,43 @@ input,select,textarea{font-family:inherit}
 .prog-track{height:2px;background:#253347;border-radius:1px;margin-top:6px;overflow:hidden}
 .prog-fill{height:100%;border-radius:1px;transition:width .3s}
 .expand-body{margin-top:9px;padding-top:7px;border-top:1px dashed #253347}
-/* subtasks in expanded view */
 .sub-view-list{display:flex;flex-direction:column;gap:5px;margin-bottom:4px}
-.sub-view-item{display:flex;gap:7px;align-items:center;group:true}
+.sub-view-item{display:flex;gap:7px;align-items:center}
 .sub-view-check{font-size:12px;flex-shrink:0}
 .sub-view-txt{font-size:13px;flex:1}
-.sub-view-del{background:none;border:none;color:#4b6071;font-size:11px;padding:1px 4px;
-  border-radius:4px;opacity:0;transition:opacity .15s,color .1s;cursor:pointer}
+.sub-view-del{background:none;border:none;color:#4b6071;font-size:11px;padding:1px 4px;border-radius:4px;opacity:0;transition:opacity .15s,color .1s;cursor:pointer}
 .sub-view-item:hover .sub-view-del{opacity:1}
 .sub-view-del:hover{color:#ef4444}
-.note-txt{font-size:12px;color:#94a3b8;font-style:italic;background:#162032;border-radius:6px;
-  padding:5px 9px;margin-top:7px;border:1px solid #253347}
+.note-txt{font-size:12px;color:#94a3b8;font-style:italic;background:#162032;border-radius:6px;padding:5px 9px;margin-top:7px;border:1px solid #253347}
 .row-actions{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
 .act-btn{background:none;border:none;font-size:13px;color:#4b6071;padding:2px 4px;border-radius:4px;transition:color .1s;cursor:pointer}
 .act-btn.edit:hover{color:#6366f1}
 .act-btn.del:hover{color:#ef4444}
 .expand-btn{background:none;border:none;font-size:11px;color:#4b6071;padding:2px 4px;border-radius:4px;cursor:pointer}
-/* ── modal ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);
-  display:flex;align-items:center;justify-content:center;z-index:500;padding:14px}
-.modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:500px;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;
-  max-height:92vh;border:1px solid #2d3f55;animation:modalIn .18s ease}
-.modal-head{display:flex;justify-content:space-between;align-items:center;
-  padding:15px 20px;border-bottom:1px solid #2d3f55}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:500;padding:14px}
+.modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;max-height:92vh;border:1px solid #2d3f55;animation:modalIn .18s ease}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;border-bottom:1px solid #2d3f55}
 .modal-title{font-size:15px;font-weight:700;color:#e2e8f0}
 .modal-close{background:none;border:none;font-size:18px;color:#4b6071;line-height:1;cursor:pointer}
 .modal-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
 .modal-foot{display:flex;justify-content:flex-end;gap:7px;padding:12px 20px;border-top:1px solid #2d3f55}
-.field-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
-  color:#4b6071;margin-bottom:3px;display:block}
-.field-inp{display:block;width:100%;padding:8px 11px;border:1px solid #2d3f55;border-radius:8px;
-  font-size:13px;color:#e2e8f0;outline:none;background:#162032;transition:border-color .15s}
+.field-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#4b6071;margin-bottom:3px;display:block}
+.field-inp{display:block;width:100%;padding:8px 11px;border:1px solid #2d3f55;border-radius:8px;font-size:13px;color:#e2e8f0;outline:none;background:#162032;transition:border-color .15s}
 .field-inp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dur-group{background:#162032;border:1px solid #2d3f55;border-radius:10px;padding:10px 12px}
 .dur-group-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#4b6071;margin-bottom:8px}
-.dur-hint{font-size:11px;color:#4b6071;margin-top:3px}
 .sub-add-row{display:flex;gap:8px;margin-bottom:8px}
-.sub-add-btn{background:#6366f1;color:#fff;border:none;width:38px;height:38px;border-radius:8px;
-  font-size:18px;flex-shrink:0;transition:filter .15s;cursor:pointer}
+.sub-add-btn{background:#6366f1;color:#fff;border:none;width:38px;height:38px;border-radius:8px;font-size:18px;flex-shrink:0;transition:filter .15s;cursor:pointer}
 .sub-add-btn:hover{filter:brightness(1.1)}
-.sub-item-row{display:flex;align-items:center;gap:8px;background:#0f172a;border-radius:7px;
-  padding:6px 9px;border:1px solid #253347;margin-bottom:5px}
-.sub-chk-btn{background:none;border:1px solid #2d3f55;border-radius:5px;width:20px;height:20px;
-  font-size:10px;flex-shrink:0;color:#4b6071;cursor:pointer}
+.sub-item-row{display:flex;align-items:center;gap:8px;background:#0f172a;border-radius:7px;padding:6px 9px;border:1px solid #253347;margin-bottom:5px}
+.sub-chk-btn{background:none;border:1px solid #2d3f55;border-radius:5px;width:20px;height:20px;font-size:10px;flex-shrink:0;color:#4b6071;cursor:pointer}
 .sub-chk-btn.done{color:#4ade80}
 .sub-del-btn{background:none;border:none;color:#4b6071;font-size:12px;cursor:pointer}
-.save-btn{background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:8px;
-  font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s,opacity .15s}
+.save-btn{background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s,opacity .15s}
 .save-btn:hover{filter:brightness(1.1)}
 .save-btn:disabled{opacity:.4;cursor:not-allowed}
-/* ── cat modal ── */
-.cat-modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:420px;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;animation:modalIn .18s ease}
+.cat-modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;animation:modalIn .18s ease}
 .palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pal-swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .1s}
 .pal-swatch.active{border-color:#6366f1}
@@ -191,40 +141,24 @@ input,select,textarea{font-family:inherit}
 .cat-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#162032;border-radius:9px;border:1px solid #253347}
 .cat-color-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
 .cat-name-lbl{flex:1;font-size:14px;color:#e2e8f0;font-weight:500}
-.del-cat-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#f87171;
-  font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;transition:all .15s;cursor:pointer}
+.del-cat-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#f87171;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;transition:all .15s;cursor:pointer}
 .del-cat-btn:hover{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.6)}
 .divider{border-top:1px solid #2d3f55;margin:4px 0}
-/* ── sync modal ── */
-.sync-modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:480px;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;animation:modalIn .18s ease}
+.sync-modal-card{background:#1e293b;border-radius:14px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;animation:modalIn .18s ease}
 .sync-steps{counter-reset:step;display:flex;flex-direction:column;gap:10px}
 .sync-step{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#94a3b8}
-.sync-step-num{width:22px;height:22px;border-radius:50%;background:#253347;color:#6366f1;
-  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.sync-code{font-family:monospace;background:#0f172a;border:1px solid #253347;padding:2px 6px;
-  border-radius:4px;font-size:12px;color:#60a5fa}
-.sync-status-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;
-  background:#162032;border:1px solid #253347;font-size:13px}
-/* ── confirm ── */
-.confirm-card{background:#1e293b;border-radius:14px;max-width:380px;width:100%;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;
-  padding:24px 24px 20px;text-align:center;animation:modalIn .18s ease}
+.sync-step-num{width:22px;height:22px;border-radius:50%;background:#253347;color:#6366f1;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.sync-code{font-family:monospace;background:#0f172a;border:1px solid #253347;padding:2px 6px;border-radius:4px;font-size:12px;color:#60a5fa}
+.sync-status-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;background:#162032;border:1px solid #253347;font-size:13px}
+.confirm-card{background:#1e293b;border-radius:14px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid #2d3f55;padding:24px 24px 20px;text-align:center;animation:modalIn .18s ease}
 .confirm-ico{font-size:28px;margin-bottom:12px}
 .confirm-title{font-weight:700;font-size:15px;color:#e2e8f0;margin-bottom:6px}
 .confirm-msg{font-size:13px;color:#94a3b8;margin-bottom:20px}
-.danger-btn{background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:9px;
-  font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s}
+.danger-btn{background:#ef4444;color:#fff;border:none;padding:9px 20px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s}
 .danger-btn:hover{filter:brightness(1.1)}
-/* ── toast ── */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;
-  color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;
-  box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;border:1px solid #334155;
-  animation:toastIn .2s ease;pointer-events:none}
-/* ── dashboard ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap;border:1px solid #334155;animation:toastIn .2s ease;pointer-events:none}
 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-.kpi-card{background:#1e293b;border-radius:12px;padding:13px 16px;
-  box-shadow:0 1px 3px rgba(0,0,0,.3);border:1px solid #2d3f55;display:flex;flex-direction:column;gap:4px}
+.kpi-card{background:#1e293b;border-radius:12px;padding:13px 16px;box-shadow:0 1px 3px rgba(0,0,0,.3);border:1px solid #2d3f55;display:flex;flex-direction:column;gap:4px}
 .kpi-icon{font-size:20px}
 .kpi-val{font-family:monospace;font-size:22px;font-weight:600;color:#e2e8f0;line-height:1}
 .kpi-lbl{font-size:10px;color:#4b6071;text-transform:uppercase;letter-spacing:.5px}
@@ -298,33 +232,58 @@ const SBADGE={"Todo":{bg:"#1e293b",c:"#94a3b8"},"In Progress":{bg:"#2d1f02",c:"#
 const PRIS=["Low","Medium","High","Critical"];
 const PC={Low:"#94a3b8",Medium:"#f59e0b",High:"#f97316",Critical:"#ef4444"};
 const PAL=["#6366f1","#f59e0b","#10b981","#ec4899","#3b82f6","#f97316","#14b8a6","#a855f7","#ef4444","#0ea5e9","#84cc16","#d946ef"];
-let _n=300; const uid=()=>String(++_n);
+
+/* ══════════════════════════════════════════
+   BUG FIX: ID counter initialised from stored data.
+   Root cause: _n was hardcoded to 300 on every page
+   load. Tasks saved across sessions got IDs like "301",
+   "302" etc. On next load _n reset to 300, so the next
+   new task received ID "301" — already in localStorage.
+   upsert() found the match and REPLACED that existing
+   task instead of appending a new one, making it appear
+   that one task was deleted each time a new one was added.
+   Fix: scan all persisted task/subtask IDs on startup
+   and initialise _n above the highest numeric value found.
+══════════════════════════════════════════ */
+const _initCounter=(tasks)=>{
+  let max=300;
+  tasks.forEach(t=>{
+    const n=parseInt(t.id,10);
+    if(!isNaN(n)&&n>max)max=n;
+    /* also check subtask IDs — they share the same counter */
+    (t.subtasks||[]).forEach(s=>{
+      const sn=parseInt(s.id,10);
+      if(!isNaN(sn)&&sn>max)max=sn;
+    });
+  });
+  return max;
+};
+const _loadedTasks=lsGet(LS_TASKS,SAMPLE);
+let _n=_initCounter(_loadedTasks);
+const uid=()=>String(++_n);
 
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
 const syncCfg=lsGet(LS_SYNC,{dbUrl:"",roomCode:""});
 let S={
-  tasks:lsGet(LS_TASKS,SAMPLE),
+  tasks:_loadedTasks,  /* reuse already-loaded tasks — avoids double localStorage read */
   cats:lsGet(LS_CATS,DEFAULT_CATS),
   view:"tasks",filterCat:"All",filterSt:"All",search:"",
   modal:null,expandedIds:new Set(),selectedIds:new Set(),
   toast:null,toastTimer:null,dragId:null,
   catColor:PAL[0],catName:"",editTask:null,
   exportMenuOpen:false,
-  /* sync */
   dbUrl:syncCfg.dbUrl||"",
   roomCode:syncCfg.roomCode||"",
-  syncStatus:"offline",  /* offline|connecting|online|error */
+  syncStatus:"offline",
   eventSource:null,
   syncWriteTimer:null,
-  /* sync modal fields */
   syncDbInput:"",syncRoomInput:"",
 };
 
 const persist=()=>{lsSet(LS_TASKS,S.tasks);lsSet(LS_CATS,S.cats);};
 
-/* ── render scheduler: debounced, max one full redraw per animation frame ── */
 let _renderTimer=null;
 const render=()=>{
   if(_renderTimer)return;
@@ -365,15 +324,13 @@ const dlInfo=dl=>{
 };
 
 /* ══════════════════════════════════════════
-   FIREBASE SYNC  (REST API + SSE)
+   FIREBASE SYNC
 ══════════════════════════════════════════ */
 const syncEndpoint=()=>{
   if(!S.dbUrl||!S.roomCode)return null;
   const base=S.dbUrl.replace(/\/$/,"");
   return `${base}/tf-${S.roomCode}.json`;
 };
-
-/* debounced write — prevents thrashing on rapid edits */
 const syncWrite=()=>{
   if(!syncEndpoint())return;
   if(S.syncWriteTimer)clearTimeout(S.syncWriteTimer);
@@ -385,20 +342,16 @@ const syncWrite=()=>{
     }catch(e){S.syncStatus="error";render();}
   },400);
 };
-
 const syncConnect=()=>{
   const ep=syncEndpoint();if(!ep)return;
   if(S.eventSource){S.eventSource.close();S.eventSource=null;}
   S.syncStatus="connecting";render();
-  /* Firebase SSE — fires on any change */
   const es=new EventSource(ep);
   es.addEventListener("put",e=>{
     try{
       const {data}=JSON.parse(e.data);
       if(data&&Array.isArray(data.tasks)){
-        /* Only apply remote data if newer than local */
-        const remoteTs=data.ts||0;
-        const localTs=S._lastLocalWrite||0;
+        const remoteTs=data.ts||0,localTs=S._lastLocalWrite||0;
         if(remoteTs>localTs){
           S.tasks=data.tasks;
           if(data.cats&&Array.isArray(data.cats))S.cats=data.cats;
@@ -411,21 +364,12 @@ const syncConnect=()=>{
   es.onerror=()=>{S.syncStatus="error";render();};
   S.eventSource=es;
 };
-
 const syncDisconnect=()=>{
   if(S.eventSource){S.eventSource.close();S.eventSource=null;}
-  S.syncStatus="offline";
-  S.dbUrl="";S.roomCode="";
-  lsSet(LS_SYNC,{dbUrl:"",roomCode:""});
-  render();
+  S.syncStatus="offline";S.dbUrl="";S.roomCode="";
+  lsSet(LS_SYNC,{dbUrl:"",roomCode:""});render();
 };
-
-/* wrap persist + sync */
-const save=()=>{
-  S._lastLocalWrite=Date.now();
-  persist();
-  syncWrite();
-};
+const save=()=>{S._lastLocalWrite=Date.now();persist();syncWrite();};
 
 /* ══════════════════════════════════════════
    TASK ACTIONS
@@ -433,7 +377,6 @@ const save=()=>{
 const cycleStatus=id=>{
   S.tasks=S.tasks.map(t=>t.id===id?{...t,status:SNEXT[t.status]}:t);
   save();
-  /* surgical update — just swap the badge text/colors, skip full redraw */
   const task=S.tasks.find(t=>t.id===id);
   if(!task){render();return;}
   const btn=document.querySelector(`.status-btn[data-id="${id}"]`);
@@ -442,10 +385,8 @@ const cycleStatus=id=>{
   btn.style.background=b.bg;btn.style.color=b.c;
   const dot=btn.querySelector(".status-dot");if(dot)dot.style.background=b.c;
   btn.childNodes[btn.childNodes.length-1].textContent=task.status;
-  /* also update done strikethrough on title */
   const titleEl=btn.closest(".trow-inner")?.querySelector(".row-title");
   if(titleEl){titleEl.classList.toggle("done",task.status==="Done");}
-  /* update clear-done button count if present */
   const clrBtn=document.querySelector(".clear-btn");
   const doneN=S.tasks.filter(t=>t.status==="Done").length;
   if(clrBtn){if(doneN>0)clrBtn.textContent="🗑 Clear Done ("+doneN+")";else clrBtn.remove();}
@@ -472,33 +413,21 @@ const reorder=(fId,tId)=>{
   if(fi<0||ti<0)return;const[item]=a.splice(fi,1);a.splice(ti,0,item);
   S.tasks=a;save();render();
 };
-/* delete subtask directly from expanded view */
 const delSubFromView=(taskId,subId)=>{
   S.tasks=S.tasks.map(t=>t.id===taskId?{...t,subtasks:t.subtasks.filter(s=>s.id!==subId)}:t);
   save();render();
 };
-/* toggle subtask done/undone directly from expanded view — surgical DOM update */
 const togSubFromView=(taskId,subId)=>{
   S.tasks=S.tasks.map(t=>t.id===taskId
-    ?{...t,subtasks:(t.subtasks||[]).map(s=>s.id===subId?{...s,done:!s.done}:s)}
-    :t);
+    ?{...t,subtasks:(t.subtasks||[]).map(s=>s.id===subId?{...s,done:!s.done}:s)}:t);
   save();
   const task=S.tasks.find(t=>t.id===taskId);
   const sub=task?.subtasks.find(s=>s.id===subId);
   if(!sub){render();return;}
-  /* update the check icon */
   const row=document.querySelector(`[data-action="tog-sub-view"][data-sid="${subId}"]`);
-  if(row){
-    row.style.color=sub.done?"#4ade80":"#4b6071";
-    row.textContent=sub.done?"✓":"○";
-  }
-  /* update the text strikethrough */
+  if(row){row.style.color=sub.done?"#4ade80":"#4b6071";row.textContent=sub.done?"✓":"○";}
   const txt=document.querySelector(`span[data-action="tog-sub-view"][data-sid="${subId}"]`);
-  if(txt){
-    txt.style.color=sub.done?"#4b6071":"#94a3b8";
-    txt.style.textDecoration=sub.done?"line-through":"none";
-  }
-  /* update progress bar */
+  if(txt){txt.style.color=sub.done?"#4b6071":"#94a3b8";txt.style.textDecoration=sub.done?"line-through":"none";}
   const trow=document.querySelector(`.trow[data-id="${taskId}"]`);
   if(trow){
     const subs=task.subtasks;
@@ -514,16 +443,13 @@ const togSubFromView=(taskId,subId)=>{
 /* ══════════════════════════════════════════
    EXPORTS
 ══════════════════════════════════════════ */
-/* — Excel — */
 const exportExcel=()=>{
   if(typeof XLSX==="undefined"){showToast("❌ XLSX library not loaded");return;}
   const rows=[
     ["Title","Category","Priority","Status","Deadline","Duration","Time","Subtasks","Subtasks Done","Note"],
     ...S.tasks.map(t=>{const subs=t.subtasks||[];return[t.title,t.category,t.priority,t.status,t.deadline||"—",
-      durStr(t.durAmt,t.durUnit)||"—",t.time||"",
-      subs.map(s=>s.title).join("; "),
-      subs.filter(s=>s.done).length+"/"+subs.length,
-      t.note||""];})
+      durStr(t.durAmt,t.durUnit)||"—",t.time||"",subs.map(s=>s.title).join("; "),
+      subs.filter(s=>s.done).length+"/"+subs.length,t.note||""];})
   ];
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -532,8 +458,6 @@ const exportExcel=()=>{
   XLSX.writeFile(wb,"TaskFlow.xlsx");
   showToast("✅ TaskFlow.xlsx downloaded!");
 };
-
-/* — PDF — */
 const exportPDF=()=>{
   if(!window.jspdf){showToast("❌ jsPDF not loaded");return;}
   const {jsPDF}=window.jspdf;
@@ -554,50 +478,32 @@ const exportPDF=()=>{
     headStyles:{fillColor:[30,41,59],textColor:[99,102,241],fontStyle:"bold",fontSize:9},
     alternateRowStyles:{fillColor:[22,32,50]},
     columnStyles:{0:{cellWidth:140},1:{cellWidth:80},2:{cellWidth:60},3:{cellWidth:70},4:{cellWidth:55},5:{cellWidth:45},6:{cellWidth:"auto"}},
-    tableLineColor:[45,63,85],tableLineWidth:0.5,
-    margin:{left:40,right:40},
+    tableLineColor:[45,63,85],tableLineWidth:0.5,margin:{left:40,right:40},
   });
   doc.save("TaskFlow.pdf");
   showToast("✅ TaskFlow.pdf downloaded!");
 };
-
-/* — Word (HTML → .doc) — */
 const exportWord=()=>{
   const rows=S.tasks.map(t=>{const subs=t.subtasks||[];return`
     <tr>
-      <td>${esc(t.title)}</td>
-      <td>${esc(t.category)}</td>
-      <td>${esc(t.priority)}</td>
-      <td>${esc(t.status)}</td>
-      <td>${esc(t.deadline||"—")}</td>
-      <td>${esc(durStr(t.durAmt,t.durUnit)||"—")}</td>
-      <td>${esc(t.time||"—")}</td>
+      <td>${esc(t.title)}</td><td>${esc(t.category)}</td><td>${esc(t.priority)}</td>
+      <td>${esc(t.status)}</td><td>${esc(t.deadline||"—")}</td>
+      <td>${esc(durStr(t.durAmt,t.durUnit)||"—")}</td><td>${esc(t.time||"—")}</td>
       <td>${subs.length?subs.map(s=>`${s.done?"✓":"○"} ${esc(s.title)}`).join("<br/>"):"—"}</td>
     </tr>`}).join("");
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office"
-    xmlns:w="urn:schemas-microsoft-com:office:word"
-    xmlns="http://www.w3.org/TR/REC-html40">
+    xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
   <head><meta charset="utf-8"/><title>TaskFlow Export</title>
-  <style>
-    body{font-family:Calibri,sans-serif;font-size:11pt;color:#1e293b}
-    h1{color:#6366f1;font-size:18pt;margin-bottom:4pt}
-    p.sub{color:#94a3b8;font-size:9pt;margin-bottom:14pt}
-    table{border-collapse:collapse;width:100%}
-    th{background:#1e3a5f;color:#fff;padding:6pt 8pt;text-align:left;font-size:10pt}
-    td{padding:5pt 8pt;border-bottom:1pt solid #e2e8f0;font-size:10pt;vertical-align:top}
-    tr:nth-child(even) td{background:#f8fafc}
-  </style></head>
-  <body>
-    <h1>TaskFlow — Task Export</h1>
-    <p class="sub">Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; ${S.tasks.length} tasks</p>
-    <table>
-      <thead><tr>
-        <th>Title</th><th>Category</th><th>Priority</th><th>Status</th>
-        <th>Deadline</th><th>Duration</th><th>Time</th><th>Subtasks</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </body></html>`;
+  <style>body{font-family:Calibri,sans-serif;font-size:11pt}h1{color:#6366f1;font-size:18pt}
+  p.sub{color:#94a3b8;font-size:9pt}table{border-collapse:collapse;width:100%}
+  th{background:#1e3a5f;color:#fff;padding:6pt 8pt;text-align:left;font-size:10pt}
+  td{padding:5pt 8pt;border-bottom:1pt solid #e2e8f0;font-size:10pt;vertical-align:top}
+  tr:nth-child(even) td{background:#f8fafc}</style></head>
+  <body><h1>TaskFlow — Task Export</h1>
+  <p class="sub">Generated: ${new Date().toLocaleString()} | ${S.tasks.length} tasks</p>
+  <table><thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th>
+  <th>Deadline</th><th>Duration</th><th>Time</th><th>Subtasks</th></tr></thead>
+  <tbody>${rows}</tbody></table></body></html>`;
   const blob=new Blob(["\ufeff"+html],{type:"application/msword"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download="TaskFlow.doc";
@@ -613,9 +519,8 @@ const sBadge=(status,id)=>{
   return `<button class="status-btn" data-action="cycle" data-id="${esc(id)}" style="background:${b.bg};color:${b.c}" title="Advance status">
     <span class="status-dot" style="background:${b.c}"></span>${esc(status)}</button>`;
 };
-
 const taskRow=(task,delay)=>{
-  task={durAmt:1,durUnit:"hours",subtasks:[],note:"",...task};  /* safe defaults */
+  task={durAmt:1,durUnit:"hours",subtasks:[],note:"",...task};
   const col=cc(task.category),isDone=task.status==="Done";
   const ds=task.subtasks.filter(s=>s.done).length;
   const pct=task.subtasks.length?ds/task.subtasks.length*100:0;
@@ -669,8 +574,6 @@ const taskRow=(task,delay)=>{
     </div>
   </div>`;
 };
-
-/* ── task modal ── */
 const taskModalHtml=()=>{
   const isNew=S.modal.type==="add",t=S.editTask;
   const catOpts=S.cats.map(c=>`<option value="${esc(c.name)}"${t.category===c.name?" selected":""}>${esc(c.name)}</option>`).join("");
@@ -731,8 +634,6 @@ const taskModalHtml=()=>{
     </div>
   </div>`;
 };
-
-/* ── cat modal ── */
 const catModalHtml=()=>{
   const sw=PAL.map(c=>`<button class="pal-swatch${c===S.catColor?" active":""}" style="background:${c}" data-action="pal" data-color="${c}"></button>`).join("");
   const list=S.cats.map(c=>`
@@ -763,8 +664,6 @@ const catModalHtml=()=>{
     </div>
   </div>`;
 };
-
-/* ── sync modal ── */
 const syncModalHtml=()=>{
   const isConnected=S.syncStatus==="online";
   const statusColor=S.syncStatus==="online"?"#4ade80":S.syncStatus==="connecting"?"#f59e0b":S.syncStatus==="error"?"#ef4444":"#4b6071";
@@ -780,21 +679,20 @@ const syncModalHtml=()=>{
             <span style="flex:1;font-size:13px;color:#e2e8f0">Synced on room <strong style="color:#6366f1">${esc(S.roomCode)}</strong></span>
             <button class="gbtn" data-action="disconnect-sync" style="font-size:11px;padding:4px 9px">Disconnect</button>
           </div>
-          <p style="font-size:12px;color:#94a3b8">Share the room code <strong style="color:#e2e8f0">${esc(S.roomCode)}</strong> with your other device — open this app there, enter the same Firebase URL and room code, and tasks will sync in real time.</p>`
+          <p style="font-size:12px;color:#94a3b8">Share room code <strong style="color:#e2e8f0">${esc(S.roomCode)}</strong> with your other device.</p>`
         :`
           <div class="sync-steps">
             <div class="sync-step"><span class="sync-step-num">1</span>
               <span>Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#6366f1">console.firebase.google.com</a>, create a free project, then enable <strong style="color:#e2e8f0">Realtime Database</strong>.</span></div>
             <div class="sync-step"><span class="sync-step-num">2</span>
-              <span>In the database Rules tab, set both <span class="sync-code">.read</span> and <span class="sync-code">.write</span> to <span class="sync-code">true</span> and publish.</span></div>
+              <span>In Rules tab set both <span class="sync-code">.read</span> and <span class="sync-code">.write</span> to <span class="sync-code">true</span> and publish.</span></div>
             <div class="sync-step"><span class="sync-step-num">3</span>
-              <span>Copy your database URL (looks like <span class="sync-code">https://my-app-rtdb.firebaseio.com</span>) and paste below.</span></div>
+              <span>Copy your database URL e.g. <span class="sync-code">https://my-app-rtdb.firebaseio.com</span> and paste below.</span></div>
           </div>
           <div class="divider"></div>
           <div><label class="field-lbl">Firebase Realtime Database URL</label>
-            <input class="field-inp" id="sync-db-inp" placeholder="https://your-project-default-rtdb.firebaseio.com"
-              value="${esc(S.syncDbInput||S.dbUrl)}"/></div>
-          <div><label class="field-lbl">Room Code <span style="font-weight:400;text-transform:none;color:#4b6071">(any word you choose — same on both devices)</span></label>
+            <input class="field-inp" id="sync-db-inp" placeholder="https://your-project-default-rtdb.firebaseio.com" value="${esc(S.syncDbInput||S.dbUrl)}"/></div>
+          <div><label class="field-lbl">Room Code</label>
             <input class="field-inp" id="sync-room-inp" placeholder="e.g. myworkspace" value="${esc(S.syncRoomInput||S.roomCode)}"/></div>
           <div class="sync-status-row">
             <span style="width:9px;height:9px;border-radius:50%;background:${statusColor};flex-shrink:0"></span>
@@ -808,8 +706,6 @@ const syncModalHtml=()=>{
     </div>
   </div>`;
 };
-
-/* ── confirm modals ── */
 const confirmDoneHtml=()=>{
   const n=S.tasks.filter(t=>t.status==="Done").length;
   return `<div class="overlay" id="modal-overlay"><div class="confirm-card">
@@ -832,8 +728,6 @@ const confirmBulkHtml=()=>{
       <button class="danger-btn" data-action="del-sel">Yes, delete ${n}</button>
     </div></div></div>`;
 };
-
-/* ── dashboard ── */
 const dashHtml=()=>{
   const tasks=S.tasks,tot=tasks.length;
   const dn=tasks.filter(t=>t.status==="Done").length;
@@ -851,8 +745,7 @@ const dashHtml=()=>{
       const h=ct.filter(t=>!t.durUnit||t.durUnit==="hours").reduce((a,t)=>a+(t.durAmt||0),0);
       const d=ct.filter(t=>t.durUnit==="days").reduce((a,t)=>a+(t.durAmt||0),0);
       const w=ct.filter(t=>t.durUnit==="weeks").reduce((a,t)=>a+(t.durAmt||0),0);
-      return [h?""+h+"h":"",d?""+d+"d":"",w?""+w+"w":""].filter(Boolean).join(" ")||"—";
-    })(),
+      return [h?""+h+"h":"",d?""+d+"d":"",w?""+w+"w":""].filter(Boolean).join(" ")||"—";})(),
   })).filter(c=>c.n>0);
   const sched=tasks.filter(t=>t.time&&t.status!=="Done").sort((a,b)=>a.time.localeCompare(b.time));
   const bars=items=>items.map(({l,n,c})=>`<div class="bar-row">
@@ -868,8 +761,7 @@ const dashHtml=()=>{
   const catCards=byCat.length===0?`<p class="no-data">No tasks yet.</p>`:
     byCat.map(c=>`<div class="cat-dash-card" style="background:#162032;border-left:3px solid ${c.c}">
       <div class="cat-dash-name">${esc(c.l)}</div>
-      <div class="cat-dash-meta"><span>${c.n} task${c.n!==1?"s":""}</span>
-        <span>${c.dur}</span></div>
+      <div class="cat-dash-meta"><span>${c.n} task${c.n!==1?"s":""}</span><span>${c.dur}</span></div>
       <div class="cat-dash-bar"><div class="cat-dash-fill" style="width:${tot?c.n/tot*100:0}%;background:${c.c}"></div></div>
     </div>`).join("");
   return `<div style="display:flex;flex-direction:column;gap:16px">
@@ -920,27 +812,21 @@ const _render=()=>{
     ...S.cats.map(c=>`<option value="${esc(c.name)}"${S.filterCat===c.name?" selected":""}>${esc(c.name)}</option>`)].join("");
   const stOpts=['<option value="All">All Statuses</option>',
     ...STATUSES.map(s=>`<option value="${esc(s)}"${S.filterSt===s?" selected":""}>${esc(s)}</option>`)].join("");
-
-  /* sync indicator */
   const syncColor=S.syncStatus==="online"?"#4ade80":S.syncStatus==="connecting"?"#f59e0b":S.syncStatus==="error"?"#ef4444":"#4b6071";
   const syncLabel=S.syncStatus==="online"?"Synced":S.syncStatus==="connecting"?"Syncing…":S.syncStatus==="error"?"Sync Error":"Sync";
-
   const bulkBar=selN>0?`<div class="bulk-bar">
     <span class="bulk-count"><strong>${selN}</strong> task${selN!==1?"s":""} selected</span>
     <button class="bulk-del-btn" data-action="bulk-confirm">🗑 Delete Selected</button>
     <button class="bulk-clr-btn" data-action="clr-sel">✕ Deselect all</button>
   </div>`:"";
-
   const selAllRow=list.length>0?`<div class="sel-all-row">
     <input type="checkbox" class="sel-all-chk" id="sel-all" data-action="sel-all" ${allSel?"checked":""}/>
     <label class="sel-all-lbl" for="sel-all">Select all visible (${list.length})</label>
   </div>`:"";
-
   const listHtml=list.length===0
     ?`<div class="empty"><span class="empty-ico">📋</span><p class="empty-txt">No tasks found</p>
        <button class="primary-btn" data-action="add" style="margin-top:4px">+ Add your first task</button></div>`
     :list.map((t,i)=>taskRow(t,i*22)).join("")+`<p class="hint">⠿ Drag to reorder · hover subtasks to delete them</p>`;
-
   const mainHtml=S.view==="tasks"
     ?`<div class="filter-row">
         <div class="search-wrap"><span class="search-ico">⌕</span>
@@ -951,7 +837,6 @@ const _render=()=>{
       </div>${bulkBar}${selAllRow}
       <div class="task-list" id="task-list">${listHtml}</div>`
     :dashHtml();
-
   const modalHtml=S.modal
     ?(S.modal.type==="add"||S.modal.type==="edit")?taskModalHtml()
     :S.modal.type==="cat"?catModalHtml()
@@ -960,13 +845,10 @@ const _render=()=>{
     :S.modal.type==="confirm-bulk"?confirmBulkHtml()
     :""
     :"";
-
-  /* ── save focus state before wiping DOM ── */
   const _fa=document.activeElement;
   const _focusId=_fa?_fa.id:null;
   const _selStart=(_fa&&_fa.selectionStart!=null)?_fa.selectionStart:null;
   const _selEnd=(_fa&&_fa.selectionEnd!=null)?_fa.selectionEnd:null;
-
   document.getElementById("app").innerHTML=`<div id="root">
     <header class="hdr">
       <div class="brand"><span class="brand-mark">✦</span><span class="brand-text">TaskFlow</span></div>
@@ -996,16 +878,9 @@ const _render=()=>{
     ${S.toast?`<div class="toast">${esc(S.toast)}</div>`:""}
   </div>`;
   bindEvents();
-
-  /* ── restore focus & cursor after DOM rebuild ── */
   if(_focusId){
     const el=document.getElementById(_focusId);
-    if(el){
-      el.focus();
-      if(_selStart!=null&&el.setSelectionRange){
-        try{el.setSelectionRange(_selStart,_selEnd);}catch(e){}
-      }
-    }
+    if(el){el.focus();if(_selStart!=null&&el.setSelectionRange){try{el.setSelectionRange(_selStart,_selEnd);}catch(e){}}}
   }
 };
 
@@ -1014,7 +889,6 @@ const _render=()=>{
 ══════════════════════════════════════════ */
 const bindEvents=()=>{
   const root=document.getElementById("root");if(!root)return;
-
   root.addEventListener("click",e=>{
     const b=e.target.closest("[data-action]");if(!b)return;
     const a=b.dataset.action;
@@ -1049,7 +923,6 @@ const bindEvents=()=>{
     if(a==="connect-sync")     {doConnect();return;}
     if(a==="disconnect-sync")  {syncDisconnect();return;}
   });
-
   root.addEventListener("change",e=>{
     const el=e.target;
     if(el.dataset.action==="sel"){
@@ -1062,10 +935,8 @@ const bindEvents=()=>{
       render();return;
     }
   });
-
   const ov=document.getElementById("modal-overlay");
   if(ov)ov.addEventListener("click",e=>{if(e.target===ov){S.modal=null;render();}});
-
   const si=document.getElementById("search-inp");
   if(si){
     let _st=null;
@@ -1092,7 +963,6 @@ const bindEvents=()=>{
   }
   const fc=document.getElementById("fcat");if(fc)fc.addEventListener("change",e=>{S.filterCat=e.target.value;render();});
   const fs=document.getElementById("fst");if(fs)fs.addEventListener("change",e=>{S.filterSt=e.target.value;render();});
-
   const cp=document.getElementById("cat-clr");
   if(cp)cp.addEventListener("input",e=>{S.catColor=e.target.value;syncPal();});
   const ci=document.getElementById("cat-inp");
@@ -1100,15 +970,12 @@ const bindEvents=()=>{
          ci.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addCat();}});}
   const ns=document.getElementById("m-newsub");
   if(ns)ns.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addSub();}});
-
   const ti=document.getElementById("m-title"),sb=document.getElementById("save-btn");
   if(ti&&sb){const upd=()=>{sb.disabled=!ti.value.trim();};ti.addEventListener("input",upd);upd();}
-
   const sdi=document.getElementById("sync-db-inp");
   if(sdi)sdi.addEventListener("input",e=>{S.syncDbInput=e.target.value;});
   const sri=document.getElementById("sync-room-inp");
   if(sri)sri.addEventListener("input",e=>{S.syncRoomInput=e.target.value;});
-
   bindDrag();
 };
 
@@ -1172,16 +1039,13 @@ const addCat=()=>{
   S.catName="";save();render();
 };
 const delCat=name=>{S.cats=S.cats.filter(c=>c.name!==name);save();render();};
-
-/* ── sync connect ── */
 const doConnect=()=>{
   const db=(document.getElementById("sync-db-inp")||{value:S.syncDbInput}).value.trim();
   const rm=(document.getElementById("sync-room-inp")||{value:S.syncRoomInput}).value.trim();
   if(!db||!rm){showToast("⚠️ Enter both a database URL and room code");return;}
   S.dbUrl=db;S.roomCode=rm;
   lsSet(LS_SYNC,{dbUrl:db,roomCode:rm});
-  syncConnect();
-  render();
+  syncConnect();render();
 };
 
 /* ══════════════════════════════════════════
@@ -1214,49 +1078,22 @@ const bindDrag=()=>{
   });
 };
 
-/* ── single persistent listener to close export menu on outside click ── */
 document.addEventListener("click",e=>{
-  if(S.exportMenuOpen&&!e.target.closest(".export-wrap")){
-    S.exportMenuOpen=false;render();
-  }
+  if(S.exportMenuOpen&&!e.target.closest(".export-wrap")){S.exportMenuOpen=false;render();}
 });
 
 /* ══════════════════════════════════════════
    MULTI-TAB SYNC FIX
-   The browser fires a "storage" event in every OTHER
-   tab when localStorage is written. We listen here and
-   immediately pull the new data into this tab's memory,
-   preventing stale in-memory state from overwriting
-   changes made in a sibling tab on the next save().
-
-   Without this fix:
-     Tab A adds task → writes localStorage
-     Tab B (stale S.tasks) does anything → overwrites localStorage
-     Tab A's new task disappears
-
-   With this fix:
-     Tab A adds task → writes localStorage
-     Tab B receives "storage" event → updates S.tasks from localStorage
-     Both tabs stay in sync
 ══════════════════════════════════════════ */
 window.addEventListener("storage",e=>{
-  /* Another tab changed the task list — pull it in immediately */
   if(e.key===LS_TASKS&&e.newValue){
-    try{
-      const incoming=JSON.parse(e.newValue);
-      if(Array.isArray(incoming)){S.tasks=incoming;render();}
-    }catch{}
+    try{const incoming=JSON.parse(e.newValue);if(Array.isArray(incoming)){S.tasks=incoming;render();}}catch{}
   }
-  /* Another tab changed categories — pull it in immediately */
   if(e.key===LS_CATS&&e.newValue){
-    try{
-      const incoming=JSON.parse(e.newValue);
-      if(Array.isArray(incoming)){S.cats=incoming;render();}
-    }catch{}
+    try{const incoming=JSON.parse(e.newValue);if(Array.isArray(incoming)){S.cats=incoming;render();}}catch{}
   }
 });
 
-/* ── auto-reconnect on load if credentials saved ── */
 try{ if(S.dbUrl&&S.roomCode)syncConnect(); }catch(e){ console.warn("Sync reconnect failed:",e); }
 
 try{ render(); }catch(e){
