@@ -937,7 +937,7 @@ const bindEvents=()=>{
   });
   root.addEventListener("dblclick",e=>{
     const row=e.target.closest(".trow");if(!row)return;
-    if(e.target.closest("[data-action],[type='checkbox']"))return;
+    if(e.target.closest("button,input"))return;
     openEdit(row.dataset.id);
   });
   const ov=document.getElementById("modal-overlay");
