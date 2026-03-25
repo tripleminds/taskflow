@@ -935,6 +935,11 @@ const bindEvents=()=>{
       render();return;
     }
   });
+  root.addEventListener("dblclick",e=>{
+    const row=e.target.closest(".trow");if(!row)return;
+    if(e.target.closest("[data-action],[type='checkbox']"))return;
+    openEdit(row.dataset.id);
+  });
   const ov=document.getElementById("modal-overlay");
   if(ov)ov.addEventListener("click",e=>{if(e.target===ov){S.modal=null;render();}});
   const si=document.getElementById("search-inp");
