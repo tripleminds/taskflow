@@ -189,12 +189,48 @@ input,select,textarea{font-family:inherit}
 .cat-dash-bar{height:3px;background:#253347;border-radius:2px}
 .cat-dash-fill{height:100%;border-radius:2px}
 .no-data{font-size:13px;color:#4b6071}
+/* ── subtask drag ── */
+.sub-drag-handle{color:#4b6071;font-size:13px;cursor:grab;flex-shrink:0;user-select:none;padding:0 3px;line-height:1;transition:color .1s}
+.sub-drag-handle:hover{color:#94a3b8}
+.sub-item-row.sub-drag-over{border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.2);background:#1a2745}
+.sub-item-row.sub-dragging{opacity:.45}
+/* ── dashboard pending sections ── */
+.dash-grid3{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pend-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #253347}
+.pend-row:last-child{border-bottom:none}
+.pend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pend-title{flex:1;font-size:13px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pend-more{font-size:11px;color:#4b6071;text-align:center;padding-top:6px;font-style:italic}
+.pend-task-block{margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #253347}
+.pend-task-block:last-child{margin-bottom:0;border-bottom:none;padding-bottom:0}
+.pend-task-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.pend-task-name{flex:1;font-size:13px;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pend-sub-list{padding-left:15px;display:flex;flex-direction:column;gap:3px}
+.pend-sub-item{font-size:12px;color:#4b6071;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-card-scroll{max-height:260px;overflow-y:auto}
+/* ── mobile ── */
 @media(max-width:700px){
   .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
-  .dash-grid,.dash-grid2{grid-template-columns:1fr!important}
-  .hdr{height:auto;padding:8px 12px}
+  .dash-grid,.dash-grid2,.dash-grid3{grid-template-columns:1fr!important}
+  .hdr{padding:8px 12px;height:auto}
+  .hdr-right{flex-basis:100%;margin-left:0;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px}
+  .hdr-right::-webkit-scrollbar{display:none}
   .two-col{grid-template-columns:1fr!important}
-  .main{width:94%!important;padding:14px 0!important}
+  .main{width:96%!important;padding:12px 0!important}
+  .filter-row{flex-wrap:wrap}
+  .search-wrap{width:100%!important;min-width:100%!important}
+  .trow-inner{padding:9px 10px;gap:7px}
+  .row-actions{flex-direction:row;gap:4px;align-items:center}
+  .modal-card,.cat-modal-card,.sync-modal-card{max-width:100%}
+  .overlay{padding:8px}
+  .modal-card{max-height:96vh}
+}
+@media(max-width:480px){
+  .kpi-val{font-size:18px}
+  .status-btn{padding:4px 7px;font-size:10px}
+  .row-title{font-size:13px}
+  .hdr-right .gbtn,.hdr-right .clear-btn,.hdr-right .primary-btn,
+  .hdr-right .export-btn,.hdr-right .sync-badge{white-space:nowrap;flex-shrink:0}
 }
 </style>
 </head>
@@ -580,7 +616,8 @@ const taskModalHtml=()=>{
   const priOpts=PRIS.map(p=>`<option value="${esc(p)}"${t.priority===p?" selected":""}>${esc(p)}</option>`).join("");
   const stOpts=STATUSES.map(s=>`<option value="${esc(s)}"${t.status===s?" selected":""}>${esc(s)}</option>`).join("");
   const subRows=t.subtasks.map(s=>`
-    <div class="sub-item-row">
+    <div class="sub-item-row" draggable="true" data-sid="${esc(s.id)}">
+      <span class="sub-drag-handle" title="Drag to reorder">⠿</span>
       <button class="sub-chk-btn${s.done?" done":""}" data-action="tog-sub" data-sid="${esc(s.id)}">${s.done?"✓":"○"}</button>
       <span style="flex:1;font-size:13px;color:${s.done?"#4b6071":"#94a3b8"};text-decoration:${s.done?"line-through":"none"}">${esc(s.title)}</span>
       <button class="sub-del-btn" data-action="del-sub" data-sid="${esc(s.id)}">✕</button>
@@ -764,6 +801,34 @@ const dashHtml=()=>{
       <div class="cat-dash-meta"><span>${c.n} task${c.n!==1?"s":""}</span><span>${c.dur}</span></div>
       <div class="cat-dash-bar"><div class="cat-dash-fill" style="width:${tot?c.n/tot*100:0}%;background:${c.c}"></div></div>
     </div>`).join("");
+  /* ── pending tasks ── */
+  const pendingTasks=tasks.filter(t=>t.status!=="Done");
+  const pendingSlice=pendingTasks.slice(0,10);
+  const pendingMore=pendingTasks.length-10;
+  const pendingTasksHtml=pendingSlice.length===0
+    ?`<p class="no-data">All tasks completed! 🎉</p>`
+    :pendingSlice.map(t=>{const col=cc(t.category),b=SBADGE[t.status],di=dlInfo(t.deadline);
+      return `<div class="pend-row">
+        <span class="pend-dot" style="background:${col}"></span>
+        <span class="pend-title">${esc(t.title)}</span>
+        ${di?`<span class="dl-pill ${di.cls}">${esc(di.label)}</span>`:""}
+        <span class="sched-badge" style="background:${b.bg};color:${b.c}">${esc(t.status)}</span>
+      </div>`;}).join("")+(pendingMore>0?`<p class="pend-more">+${pendingMore} more task${pendingMore!==1?"s":""}</p>`:"");
+  /* ── pending subtasks ── */
+  const tasksWithPending=tasks.filter(t=>t.subtasks&&t.subtasks.some(s=>!s.done));
+  const pendingSubsSlice=tasksWithPending.slice(0,6);
+  const pendingSubsMore=tasksWithPending.length-6;
+  const pendingSubsHtml=pendingSubsSlice.length===0
+    ?`<p class="no-data">No pending subtasks! 🎉</p>`
+    :pendingSubsSlice.map(t=>{const col=cc(t.category),psubs=t.subtasks.filter(s=>!s.done);
+      return `<div class="pend-task-block">
+        <div class="pend-task-header">
+          <span class="pend-dot" style="background:${col}"></span>
+          <span class="pend-task-name">${esc(t.title)}</span>
+          <span class="dim">${psubs.length} pending</span>
+        </div>
+        <div class="pend-sub-list">${psubs.slice(0,4).map(s=>`<div class="pend-sub-item">○ ${esc(s.title)}</div>`).join("")}${psubs.length>4?`<div class="pend-sub-item">+${psubs.length-4} more…</div>`:""}</div>
+      </div>`;}).join("")+(pendingSubsMore>0?`<p class="pend-more">+${pendingSubsMore} more task${pendingSubsMore!==1?"s":""}</p>`:"");
   return `<div style="display:flex;flex-direction:column;gap:16px">
     <div class="kpi-grid">
       ${(()=>{
@@ -791,6 +856,16 @@ const dashHtml=()=>{
           <div class="ring-center"><span class="ring-pct">${pct}%</span><span class="ring-lbl">done</span></div>
         </div>
         <span class="ring-sub">${dn} of ${tot} completed</span>
+      </div>
+    </div>
+    <div class="dash-grid3">
+      <div class="dash-card">
+        <div class="dash-title">Pending Tasks (${pendingTasks.length})</div>
+        <div class="dash-card-scroll">${pendingTasksHtml}</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-title">Pending Subtasks</div>
+        <div class="dash-card-scroll">${pendingSubsHtml}</div>
       </div>
     </div>
     <div class="dash-grid2">
@@ -982,6 +1057,7 @@ const bindEvents=()=>{
   const sri=document.getElementById("sync-room-inp");
   if(sri)sri.addEventListener("input",e=>{S.syncRoomInput=e.target.value;});
   bindDrag();
+  bindSubDrag();
 };
 
 /* ── helpers ── */
@@ -1023,7 +1099,8 @@ const delSub=sid=>{S.editTask.subtasks=S.editTask.subtasks.filter(s=>s.id!==sid)
 const rerenderSubs=()=>{
   const c=document.getElementById("sub-list");if(!c)return;
   c.innerHTML=S.editTask.subtasks.map(s=>`
-    <div class="sub-item-row">
+    <div class="sub-item-row" draggable="true" data-sid="${esc(s.id)}">
+      <span class="sub-drag-handle" title="Drag to reorder">⠿</span>
       <button class="sub-chk-btn${s.done?" done":""}" data-action="tog-sub" data-sid="${esc(s.id)}">${s.done?"✓":"○"}</button>
       <span style="flex:1;font-size:13px;color:${s.done?"#4b6071":"#94a3b8"};text-decoration:${s.done?"line-through":"none"}">${esc(s.title)}</span>
       <button class="sub-del-btn" data-action="del-sub" data-sid="${esc(s.id)}">✕</button>
@@ -1080,6 +1157,45 @@ const bindDrag=()=>{
     const row=e.target.closest(".trow");if(!row)return;
     row.classList.remove("drag-over");
     if(S.dragId&&S.dragId!==row.dataset.id)reorder(S.dragId,row.dataset.id);
+  });
+};
+
+/* ══════════════════════════════════════════
+   SUBTASK DRAG & DROP (modal)
+══════════════════════════════════════════ */
+const bindSubDrag=()=>{
+  const list=document.getElementById("sub-list");if(!list||list._subDragBound)return;
+  list._subDragBound=true;
+  let _subDragId=null;
+  list.addEventListener("dragstart",e=>{
+    const row=e.target.closest(".sub-item-row");if(!row)return;
+    if(e.target.tagName==="BUTTON"){e.preventDefault();return;}
+    _subDragId=row.dataset.sid;row.classList.add("sub-dragging");e.dataTransfer.effectAllowed="move";
+  });
+  list.addEventListener("dragend",e=>{
+    const row=e.target.closest(".sub-item-row");if(row)row.classList.remove("sub-dragging");
+    document.querySelectorAll(".sub-item-row.sub-drag-over").forEach(r=>r.classList.remove("sub-drag-over"));
+    _subDragId=null;
+  });
+  list.addEventListener("dragover",e=>{
+    e.preventDefault();e.dataTransfer.dropEffect="move";
+    const row=e.target.closest(".sub-item-row");
+    document.querySelectorAll(".sub-item-row.sub-drag-over").forEach(r=>r.classList.remove("sub-drag-over"));
+    if(row&&row.dataset.sid!==_subDragId)row.classList.add("sub-drag-over");
+  });
+  list.addEventListener("dragleave",e=>{
+    const row=e.target.closest(".sub-item-row");if(row)row.classList.remove("sub-drag-over");
+  });
+  list.addEventListener("drop",e=>{
+    e.preventDefault();
+    const row=e.target.closest(".sub-item-row");if(!row||!_subDragId||row.dataset.sid===_subDragId)return;
+    row.classList.remove("sub-drag-over");
+    const subs=[...S.editTask.subtasks];
+    const fi=subs.findIndex(s=>s.id===_subDragId);
+    const ti=subs.findIndex(s=>s.id===row.dataset.sid);
+    if(fi<0||ti<0)return;
+    const[item]=subs.splice(fi,1);subs.splice(ti,0,item);
+    S.editTask.subtasks=subs;rerenderSubs();
   });
 };
 
