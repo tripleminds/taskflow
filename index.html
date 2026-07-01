@@ -189,6 +189,28 @@ input,select,textarea{font-family:inherit}
 .cat-dash-bar{height:3px;background:#253347;border-radius:2px}
 .cat-dash-fill{height:100%;border-radius:2px}
 .no-data{font-size:13px;color:#4b6071}
+/* ── routines ── */
+.routine-list{display:flex;flex-direction:column;gap:10px}
+.routine-card{background:#1e293b;border-radius:11px;border:1.5px solid #253347;box-shadow:0 1px 3px rgba(0,0,0,.3);padding:13px 15px;animation:fadeUp .2s ease both}
+.routine-card.due-today{border-color:#334d6e}
+.routine-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.routine-title{font-size:14px;font-weight:700;color:#e2e8f0;flex:1;min-width:0}
+.mark-btn{background:#162032;border:1px solid #2d3f55;color:#94a3b8;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;white-space:nowrap;transition:all .15s;flex-shrink:0;cursor:pointer}
+.mark-btn:hover{border-color:#6366f1;color:#e2e8f0}
+.mark-btn.done{background:rgba(74,222,128,.15);border-color:rgba(74,222,128,.5);color:#4ade80}
+.freq-pill{font-size:10px;color:#94a3b8;background:#162032;padding:2px 7px;border-radius:8px;border:1px solid #2d3f55;white-space:nowrap}
+.streak-badge{font-size:11px;font-weight:700;color:#f59e0b;white-space:nowrap}
+.best-streak{font-size:10px;color:#4b6071;white-space:nowrap}
+.heatmap{display:flex;gap:3px;margin-top:10px;flex-wrap:wrap}
+.heat-cell{width:16px;height:16px;border-radius:4px;border:none;cursor:pointer;padding:0;transition:transform .1s}
+.heat-cell:hover{transform:scale(1.2)}
+.heat-off{background:#162032}
+.heat-missed{background:rgba(239,68,68,.4)}
+.heat-pending{background:rgba(245,158,11,.3);box-shadow:inset 0 0 0 1.5px #f59e0b}
+.heat-done{background:#4ade80}
+.day-pill{width:32px;height:32px;border-radius:8px;border:1px solid #2d3f55;background:#162032;color:#94a3b8;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.day-pill.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.freq-choice{display:flex;align-items:center;gap:6px;font-size:13px;color:#e2e8f0;cursor:pointer}
 /* ── subtask drag ── */
 .sub-drag-handle{color:#4b6071;font-size:13px;cursor:grab;flex-shrink:0;user-select:none;padding:0 3px;line-height:1;transition:color .1s}
 .sub-drag-handle:hover{color:#94a3b8}
@@ -221,6 +243,8 @@ input,select,textarea{font-family:inherit}
   .search-wrap{width:100%!important;min-width:100%!important}
   .trow-inner{padding:9px 10px;gap:7px}
   .row-actions{flex-direction:row;gap:4px;align-items:center}
+  .heat-cell{width:13px;height:13px}
+  .day-pill{width:28px;height:28px}
   .modal-card,.cat-modal-card,.sync-modal-card{max-width:100%}
   .overlay{padding:8px}
   .modal-card{max-height:96vh}
@@ -240,7 +264,7 @@ input,select,textarea{font-family:inherit}
 /* ══════════════════════════════════════════
    PERSISTENCE
 ══════════════════════════════════════════ */
-const LS_TASKS="tf_tasks_v2",LS_CATS="tf_cats_v1",LS_SYNC="tf_sync_cfg";
+const LS_TASKS="tf_tasks_v2",LS_CATS="tf_cats_v1",LS_SYNC="tf_sync_cfg",LS_ROUTINES="tf_routines_v1";
 const lsGet=(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
 
@@ -261,6 +285,24 @@ const SAMPLE=[
   {id:"4",title:"Call insurance provider",category:"Administrative",priority:"Medium",status:"Todo",durAmt:1,durUnit:"hours",time:"14:00",subtasks:[],note:""},
   {id:"5",title:"Evening prayer",category:"Spiritual",priority:"Low",status:"Done",durAmt:0.5,durUnit:"hours",time:"20:00",subtasks:[],note:""},
   {id:"6",title:"Kids school pickup",category:"Family",priority:"High",status:"Todo",durAmt:1,durUnit:"hours",time:"15:30",deadline:"2026-03-10",subtasks:[],note:""},
+];
+const DAY_NAMES=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAY_LETTERS=["S","M","T","W","T","F","S"];
+/* seed a short realistic log so new users see streaks/analytics working out of the box */
+const _seedLog=(daysBack,dueDays,skipToday)=>{
+  const log={};
+  for(let i=daysBack;i>=(skipToday?1:0);i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    if(dueDays.includes(d.getDay())&&Math.random()>0.15){
+      const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");
+      log[`${y}-${m}-${dd}`]=true;
+    }
+  }
+  return log;
+};
+const SAMPLE_ROUTINES=[
+  {id:"r1",title:"Morning stand-up prep",category:"Meeting",time:"08:30",durAmt:15,durUnit:"mins",freq:"custom",days:[1,2,3,4,5],note:"",createdAt:"2026-06-01",log:_seedLog(21,[1,2,3,4,5],true)},
+  {id:"r2",title:"Daily research log",category:"Personal",time:"21:00",durAmt:20,durUnit:"mins",freq:"daily",days:[0,1,2,3,4,5,6],note:"RADICAL-Net progress notes",createdAt:"2026-06-01",log:_seedLog(21,[0,1,2,3,4,5,6],true)},
 ];
 const STATUSES=["Todo","In Progress","Review","Done"];
 const SNEXT={"Todo":"In Progress","In Progress":"Review","Review":"Done","Done":"Todo"};
@@ -305,10 +347,11 @@ const syncCfg=lsGet(LS_SYNC,{dbUrl:"",roomCode:""});
 let S={
   tasks:_loadedTasks,  /* reuse already-loaded tasks — avoids double localStorage read */
   cats:lsGet(LS_CATS,DEFAULT_CATS),
+  routines:lsGet(LS_ROUTINES,SAMPLE_ROUTINES),
   view:"tasks",filterCat:"All",filterSt:"All",search:"",
   modal:null,expandedIds:new Set(),selectedIds:new Set(),
   toast:null,toastTimer:null,dragId:null,
-  catColor:PAL[0],catName:"",editTask:null,
+  catColor:PAL[0],catName:"",editTask:null,editRoutine:null,
   exportMenuOpen:false,
   dbUrl:syncCfg.dbUrl||"",
   roomCode:syncCfg.roomCode||"",
@@ -318,7 +361,7 @@ let S={
   syncDbInput:"",syncRoomInput:"",
 };
 
-const persist=()=>{lsSet(LS_TASKS,S.tasks);lsSet(LS_CATS,S.cats);};
+const persist=()=>{lsSet(LS_TASKS,S.tasks);lsSet(LS_CATS,S.cats);lsSet(LS_ROUTINES,S.routines);};
 
 let _renderTimer=null;
 const render=()=>{
@@ -345,7 +388,7 @@ const filtered=()=>S.tasks.filter(t=>
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const durStr=(amt,unit)=>{
   if(!amt||amt<=0)return null;
-  const u={hours:"h",days:"d",weeks:"w"}[unit]||"h";
+  const u={hours:"h",mins:"m",days:"d",weeks:"w"}[unit]||"h";
   return amt+u;
 };
 const dlInfo=dl=>{
@@ -358,6 +401,68 @@ const dlInfo=dl=>{
   if(diff<=3) return {cls:"dl-soon",   label:"Due in "+diff+"d"};
   return      {cls:"dl-future",  label:"📅 "+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})};
 };
+
+/* ══════════════════════════════════════════
+   ROUTINE HELPERS (repeat logic + analytics)
+══════════════════════════════════════════ */
+const dStr=d=>{
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+};
+const todayD=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
+const isDueOn=(r,d)=>r.freq==="daily"?true:(r.days||[]).includes(d.getDay());
+const freqLabel=r=>{
+  const days=[...(r.days||[])].sort((a,b)=>a-b);
+  if(r.freq==="daily"||days.length===7)return "Daily";
+  if(days.length===0)return "Not scheduled";
+  if(days.length===5&&days.every(d=>d>=1&&d<=5))return "Weekdays";
+  if(days.length===2&&days.includes(0)&&days.includes(6))return "Weekends";
+  return days.map(d=>DAY_NAMES[d]).join(", ");
+};
+/* current streak: consecutive DUE days completed, counting back from today.
+   if a routine is due today but not yet logged, today isn't counted as a
+   miss (the day isn't over) — we just start counting from yesterday. */
+const currentStreakFor=r=>{
+  let d=todayD(),count=0,steps=0;
+  if(isDueOn(r,d)&&!r.log[dStr(d)])d.setDate(d.getDate()-1);
+  while(steps<3660){
+    steps++;
+    if(isDueOn(r,d)){
+      if(r.log[dStr(d)]){count++;d.setDate(d.getDate()-1);}
+      else break;
+    } else {
+      d.setDate(d.getDate()-1);
+    }
+  }
+  return count;
+};
+/* longest streak ever, scanning day-by-day from creation date to today */
+const longestStreakFor=r=>{
+  const keys=Object.keys(r.log||{});
+  const startStr=r.createdAt||(keys.length?keys.sort()[0]:dStr(todayD()));
+  let d=new Date(startStr+"T00:00:00");
+  const end=todayD();
+  let best=0,cur=0,steps=0;
+  while(d<=end&&steps<3660){
+    steps++;
+    if(isDueOn(r,d)){
+      if(r.log[dStr(d)]){cur++;if(cur>best)best=cur;}
+      else cur=0;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return best;
+};
+/* % of DUE days completed within the last `days` calendar days */
+const completionRateFor=(r,days=30)=>{
+  let due=0,done=0,d=todayD();
+  for(let i=0;i<days;i++){
+    if(isDueOn(r,d)){due++;if(r.log[dStr(d)])done++;}
+    d.setDate(d.getDate()-1);
+  }
+  return due?Math.round(done/due*100):0;
+};
+const totalDoneFor=r=>Object.values(r.log||{}).filter(Boolean).length;
 
 /* ══════════════════════════════════════════
    FIREBASE SYNC
@@ -374,7 +479,7 @@ const syncWrite=()=>{
     const ep=syncEndpoint();if(!ep)return;
     try{
       await fetch(ep,{method:"PUT",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({tasks:S.tasks,cats:S.cats,ts:Date.now()})});
+        body:JSON.stringify({tasks:S.tasks,cats:S.cats,routines:S.routines,ts:Date.now()})});
     }catch(e){S.syncStatus="error";render();}
   },400);
 };
@@ -391,6 +496,7 @@ const syncConnect=()=>{
         if(remoteTs>localTs){
           S.tasks=data.tasks;
           if(data.cats&&Array.isArray(data.cats))S.cats=data.cats;
+          if(data.routines&&Array.isArray(data.routines))S.routines=data.routines;
           persist();render();
         }
       }
@@ -474,6 +580,54 @@ const togSubFromView=(taskId,subId)=>{
     if(dimEl&&dimEl.textContent.includes("subtasks"))
       dimEl.textContent=subs.filter(s=>s.done).length+"/"+subs.length+" subtasks";
   }
+};
+
+/* ══════════════════════════════════════════
+   ROUTINE ACTIONS
+══════════════════════════════════════════ */
+const openAddRoutine=()=>{
+  S.editRoutine={id:uid(),title:"",category:S.cats[0]?.name||"Personal",time:"",
+    durAmt:0,durUnit:"hours",freq:"daily",days:[0,1,2,3,4,5,6],note:"",createdAt:dStr(todayD()),log:{}};
+  S.modal={type:"routine-add"};render();
+  setTimeout(()=>{const el=document.getElementById("rm-title");if(el)el.focus();},50);
+};
+const openEditRoutine=id=>{
+  const r=S.routines.find(r=>r.id===id);if(!r)return;
+  S.editRoutine=JSON.parse(JSON.stringify(r));
+  S.modal={type:"routine-edit"};render();
+  setTimeout(()=>{const el=document.getElementById("rm-title");if(el)el.focus();},50);
+};
+const saveRoutine=()=>{
+  const r=S.editRoutine;if(!r)return;
+  const gv=id=>{const el=document.getElementById(id);return el?el.value:null;};
+  const title=(gv("rm-title")||"").trim();if(!title)return;
+  const freq=(document.querySelector('input[name="rm-freq"]:checked')||{}).value||"daily";
+  const days=freq==="daily"?[0,1,2,3,4,5,6]
+    :[...document.querySelectorAll(".day-pill.active")].map(el=>parseInt(el.dataset.day,10));
+  if(freq==="custom"&&days.length===0){showToast("⚠️ Select at least one day");return;}
+  const saved={...r,title,category:gv("rm-cat")||r.category,time:gv("rm-time")||"",
+    durAmt:parseFloat(gv("rm-duramt"))||0,durUnit:gv("rm-durunit")||"hours",
+    freq,days,note:gv("rm-note")||""};
+  const wasNew=S.modal.type==="routine-add";
+  S.routines=wasNew?[...S.routines,saved]:S.routines.map(x=>x.id===saved.id?saved:x);
+  persist();syncWrite();S.modal=null;render();
+  showToast(wasNew?"✅ Routine created":"✏️ Routine updated");
+};
+const deleteRoutine=id=>{
+  S.routines=S.routines.filter(r=>r.id!==id);
+  persist();syncWrite();S.modal=null;render();
+  showToast("🗑 Routine deleted");
+};
+/* toggles completion for one specific date — used by the "mark done" button
+   AND by clicking any cell in a routine's heatmap (lets you back-fill history) */
+const toggleRoutineDate=(id,ds)=>{
+  S.routines=S.routines.map(r=>{
+    if(r.id!==id)return r;
+    const log={...r.log};
+    if(log[ds])delete log[ds];else log[ds]=true;
+    return {...r,log};
+  });
+  persist();syncWrite();render();
 };
 
 /* ══════════════════════════════════════════
@@ -875,6 +1029,139 @@ const dashHtml=()=>{
   </div>`;
 };
 
+const dayPillsHtml=selectedDays=>DAY_LETTERS.map((n,i)=>
+  `<button type="button" class="day-pill${selectedDays.includes(i)?" active":""}" data-action="day-pill" data-day="${i}" title="${DAY_NAMES[i]}">${n}</button>`).join("");
+const routineModalHtml=()=>{
+  const isNew=S.modal.type==="routine-add",r=S.editRoutine;
+  const catOpts=S.cats.map(c=>`<option value="${esc(c.name)}"${r.category===c.name?" selected":""}>${esc(c.name)}</option>`).join("");
+  const isDaily=r.freq==="daily";
+  const dayInit=(!isDaily&&r.days&&r.days.length)?r.days:[1,2,3,4,5];
+  return `<div class="overlay" id="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span class="modal-title">${isNew?"New Routine":"Edit Routine"}</span>
+        <button class="modal-close" data-action="close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div><label class="field-lbl">Routine Title *</label>
+          <input class="field-inp" id="rm-title" placeholder="e.g. Morning workout" value="${esc(r.title)}" autocomplete="off"/></div>
+        <div class="two-col">
+          <div><label class="field-lbl">Category</label><select class="field-inp" id="rm-cat">${catOpts}</select></div>
+          <div><label class="field-lbl">Time <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+            <input class="field-inp" id="rm-time" type="time" value="${esc(r.time||"")}"/></div>
+        </div>
+        <div class="dur-group">
+          <div class="dur-group-title">⏱ Duration Estimate</div>
+          <div class="two-col">
+            <div><label class="field-lbl">Amount</label>
+              <input class="field-inp" id="rm-duramt" type="number" min="0" step="0.5" value="${esc(r.durAmt||0)}" placeholder="e.g. 1"/></div>
+            <div><label class="field-lbl">Unit</label>
+              <select class="field-inp" id="rm-durunit">
+                <option value="mins"${(r.durUnit||"")==="mins"?" selected":""}>Minutes</option>
+                <option value="hours"${(r.durUnit||"hours")==="hours"?" selected":""}>Hours</option>
+                <option value="days"${(r.durUnit||"")==="days"?" selected":""}>Days</option>
+              </select></div>
+          </div>
+        </div>
+        <div class="dur-group">
+          <div class="dur-group-title">🔁 Repeat</div>
+          <div style="display:flex;gap:16px;margin-bottom:10px">
+            <label class="freq-choice"><input type="radio" name="rm-freq" value="daily" ${isDaily?"checked":""}/> Every day</label>
+            <label class="freq-choice"><input type="radio" name="rm-freq" value="custom" ${!isDaily?"checked":""}/> Specific days</label>
+          </div>
+          <div id="rm-days-wrap" style="display:${isDaily?"none":"flex"};gap:5px;flex-wrap:wrap">${dayPillsHtml(dayInit)}</div>
+        </div>
+        <div><label class="field-lbl">Note <span style="font-weight:400;text-transform:none;color:#4b6071">(optional)</span></label>
+          <textarea class="field-inp" id="rm-note" rows="2" style="resize:vertical;font-family:inherit">${esc(r.note||"")}</textarea></div>
+      </div>
+      <div class="modal-foot">
+        <button class="gbtn" data-action="close">Cancel</button>
+        <button class="save-btn" id="rsave-btn" data-action="save-routine">${isNew?"Create Routine":"Save Changes"}</button>
+      </div>
+    </div>
+  </div>`;
+};
+const routineCardHtml=r=>{
+  const col=cc(r.category);
+  const today=todayD(),todayS=dStr(today);
+  const dueToday=isDueOn(r,today);
+  const doneToday=!!r.log[todayS];
+  const streak=currentStreakFor(r),best=longestStreakFor(r);
+  const rate=completionRateFor(r,30);
+  const total=totalDoneFor(r);
+  const dur=durStr(r.durAmt,r.durUnit);
+  const cells=[];
+  for(let i=13;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=dStr(d);
+    let state;
+    if(!isDueOn(r,d))state="off";
+    else if(r.log[ds])state="done";
+    else if(ds===todayS)state="pending";
+    else state="missed";
+    cells.push(`<button class="heat-cell heat-${state}" data-action="toggle-routine" data-id="${esc(r.id)}" data-date="${ds}" title="${d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})} — ${state==="off"?"not scheduled":state==="done"?"completed":state==="pending"?"due today":"missed"}"></button>`);
+  }
+  return `<div class="routine-card${dueToday?" due-today":""}">
+    <div class="routine-top">
+      <span class="cat-dot" style="background:${col}"></span>
+      <span class="routine-title">${esc(r.title)}</span>
+      ${r.time?`<span class="time-pill">🕐 ${esc(r.time)}</span>`:""}
+      <button class="mark-btn${doneToday?" done":""}" data-action="toggle-routine" data-id="${esc(r.id)}" data-date="${todayS}">
+        ${doneToday?"✓ Done today":dueToday?"Mark done":"＋ Log today"}
+      </button>
+    </div>
+    <div class="meta-line">
+      <span class="cat-tag" style="color:${col};border-color:${col}55">${esc(r.category)}</span>
+      <span class="freq-pill">🔁 ${esc(freqLabel(r))}</span>
+      ${dur?`<span class="dim">⏱ ${esc(dur)}</span>`:""}
+      <span class="streak-badge">🔥 ${streak}-day streak</span>
+      <span class="best-streak">best ${best}d</span>
+      <span class="dim">${rate}% (30d)</span>
+      <span class="dim">${total} total</span>
+    </div>
+    <div class="heatmap">${cells.join("")}</div>
+    ${r.note?`<p class="note-txt">${esc(r.note)}</p>`:""}
+    <div class="row-actions" style="flex-direction:row;justify-content:flex-end;margin-top:6px">
+      <button class="act-btn edit" data-action="edit-routine" data-id="${esc(r.id)}" title="Edit">✎</button>
+      <button class="act-btn del" data-action="del-routine" data-id="${esc(r.id)}" title="Delete">✕</button>
+    </div>
+  </div>`;
+};
+const routinesHtml=()=>{
+  const rs=S.routines,today=todayD();
+  const dueTodayList=rs.filter(r=>isDueOn(r,today));
+  const doneTodayN=dueTodayList.filter(r=>r.log[dStr(today)]).length;
+  const best=rs.reduce((acc,r)=>{const s=currentStreakFor(r);return s>acc.s?{s,name:r.title}:acc;},{s:0,name:"—"});
+  const avgRate=rs.length?Math.round(rs.reduce((a,r)=>a+completionRateFor(r,30),0)/rs.length):0;
+  const kpis=[
+    {i:"🔁",l:"Active Routines",v:rs.length,col:"#6366f1"},
+    {i:"✅",l:"Done Today",v:`${doneTodayN}/${dueTodayList.length}`,col:"#10b981"},
+    {i:"🔥",l:"Best Streak",v:best.s?`${best.s}d`:"0d",col:"#f59e0b"},
+    {i:"📈",l:"Avg 30d Rate",v:avgRate+"%",col:"#3b82f6"},
+  ];
+  const kpiHtml=kpis.map(k=>`<div class="kpi-card" style="border-top:3px solid ${k.col}">
+    <span class="kpi-icon">${k.i}</span><span class="kpi-val">${k.v}</span><span class="kpi-lbl">${k.l}</span></div>`).join("");
+  const list=rs.length===0
+    ?`<div class="empty"><span class="empty-ico">🔁</span><p class="empty-txt">No routines yet</p>
+       <button class="primary-btn" data-action="add-routine" style="margin-top:4px">+ Add your first routine</button></div>`
+    :[...rs].sort((a,b)=>(isDueOn(a,today)?0:1)-(isDueOn(b,today)?0:1)).map(routineCardHtml).join("");
+  return `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">${kpiHtml}</div>
+    <div class="routine-list">${list}</div>
+  </div>`;
+};
+const confirmDelRoutineHtml=()=>{
+  const r=S.routines.find(x=>x.id===S.modal.id);
+  return `<div class="overlay" id="modal-overlay"><div class="confirm-card">
+    <div class="confirm-ico">🗑</div>
+    <p class="confirm-title">Delete this routine?</p>
+    <p class="confirm-msg">Permanently delete <strong style="color:#ef4444">${esc(r?r.title:"this routine")}</strong> and all of its tracking history. Cannot be undone.</p>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="gbtn" data-action="close">Cancel</button>
+      <button class="danger-btn" data-action="confirm-del-routine">Yes, delete</button>
+    </div></div></div>`;
+};
+
 /* ══════════════════════════════════════════
    MAIN RENDER
 ══════════════════════════════════════════ */
@@ -911,13 +1198,16 @@ const _render=()=>{
         <span class="count-tag">${list.length} task${list.length!==1?"s":""}</span>
       </div>${bulkBar}${selAllRow}
       <div class="task-list" id="task-list">${listHtml}</div>`
+    :S.view==="routines"?routinesHtml()
     :dashHtml();
   const modalHtml=S.modal
     ?(S.modal.type==="add"||S.modal.type==="edit")?taskModalHtml()
+    :(S.modal.type==="routine-add"||S.modal.type==="routine-edit")?routineModalHtml()
     :S.modal.type==="cat"?catModalHtml()
     :S.modal.type==="sync"?syncModalHtml()
     :S.modal.type==="confirm-done"?confirmDoneHtml()
     :S.modal.type==="confirm-bulk"?confirmBulkHtml()
+    :S.modal.type==="confirm-del-routine"?confirmDelRoutineHtml()
     :""
     :"";
   const _fa=document.activeElement;
@@ -929,6 +1219,7 @@ const _render=()=>{
       <div class="brand"><span class="brand-mark">✦</span><span class="brand-text">TaskFlow</span></div>
       <div class="tabs">
         <button class="tab-btn${S.view==="tasks"?" active":""}" data-action="view-tasks">Tasks</button>
+        <button class="tab-btn${S.view==="routines"?" active":""}" data-action="view-routines">Routines</button>
         <button class="tab-btn${S.view==="dashboard"?" active":""}" data-action="view-dash">Dashboard</button>
       </div>
       <div class="hdr-right">
@@ -946,6 +1237,7 @@ const _render=()=>{
         <button class="gbtn" data-action="open-cat">⊕ Category</button>
         ${S.view==="tasks"&&doneN>0?`<button class="clear-btn" data-action="open-done-confirm">🗑 Clear Done (${doneN})</button>`:""}
         ${S.view==="tasks"?`<button class="primary-btn" data-action="add">+ Add Task</button>`:""}
+        ${S.view==="routines"?`<button class="primary-btn" data-action="add-routine">+ Add Routine</button>`:""}
       </div>
     </header>
     <main class="main">${mainHtml}</main>
@@ -968,8 +1260,16 @@ const bindEvents=()=>{
     const b=e.target.closest("[data-action]");if(!b)return;
     const a=b.dataset.action;
     if(a==="view-tasks")       {S.view="tasks";S.selectedIds=new Set();render();return;}
+    if(a==="view-routines")    {S.view="routines";S.selectedIds=new Set();render();return;}
     if(a==="view-dash")        {S.view="dashboard";S.selectedIds=new Set();render();return;}
     if(a==="add")              {openAdd();return;}
+    if(a==="add-routine")      {openAddRoutine();return;}
+    if(a==="edit-routine")     {openEditRoutine(b.dataset.id);return;}
+    if(a==="del-routine")      {S.modal={type:"confirm-del-routine",id:b.dataset.id};render();return;}
+    if(a==="confirm-del-routine"){deleteRoutine(S.modal.id);return;}
+    if(a==="toggle-routine")   {toggleRoutineDate(b.dataset.id,b.dataset.date);return;}
+    if(a==="save-routine")     {saveRoutine();return;}
+    if(a==="day-pill")         {b.classList.toggle("active");return;}
     if(a==="open-cat")         {S.modal={type:"cat"};render();return;}
     if(a==="open-sync")        {S.syncDbInput=S.dbUrl;S.syncRoomInput=S.roomCode;S.modal={type:"sync"};render();return;}
     if(a==="open-done-confirm"){S.modal={type:"confirm-done"};render();return;}
@@ -1008,6 +1308,11 @@ const bindEvents=()=>{
     if(el.dataset.action==="sel-all"){
       filtered().forEach(t=>el.checked?S.selectedIds.add(t.id):S.selectedIds.delete(t.id));
       render();return;
+    }
+    if(el.name==="rm-freq"){
+      const wrap=document.getElementById("rm-days-wrap");
+      if(wrap)wrap.style.display=el.value==="daily"?"none":"flex";
+      return;
     }
   });
   root.addEventListener("dblclick",e=>{
@@ -1052,6 +1357,8 @@ const bindEvents=()=>{
   if(ns)ns.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addSub();}});
   const ti=document.getElementById("m-title"),sb=document.getElementById("save-btn");
   if(ti&&sb){const upd=()=>{sb.disabled=!ti.value.trim();};ti.addEventListener("input",upd);upd();}
+  const rti=document.getElementById("rm-title"),rsb=document.getElementById("rsave-btn");
+  if(rti&&rsb){const upd=()=>{rsb.disabled=!rti.value.trim();};rti.addEventListener("input",upd);upd();}
   const sdi=document.getElementById("sync-db-inp");
   if(sdi)sdi.addEventListener("input",e=>{S.syncDbInput=e.target.value;});
   const sri=document.getElementById("sync-room-inp");
