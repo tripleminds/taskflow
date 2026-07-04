@@ -304,6 +304,19 @@ const SAMPLE_ROUTINES=[
   {id:"r1",title:"Morning stand-up prep",category:"Meeting",time:"08:30",durAmt:15,durUnit:"mins",freq:"custom",days:[1,2,3,4,5],note:"",createdAt:"2026-06-01",log:_seedLog(21,[1,2,3,4,5],true)},
   {id:"r2",title:"Daily research log",category:"Personal",time:"21:00",durAmt:20,durUnit:"mins",freq:"daily",days:[0,1,2,3,4,5,6],note:"RADICAL-Net progress notes",createdAt:"2026-06-01",log:_seedLog(21,[0,1,2,3,4,5,6],true)},
 ];
+/* ══════════════════════════════════════════
+   BUG FIX: a routine without a `log` object
+   (e.g. one saved before this field existed, or
+   pulled in through cross-device sync) crashed
+   currentStreakFor() the instant that routine was
+   rendered. Because the crash happened mid-render,
+   bindEvents() never re-ran and the whole app froze
+   — any click after that just re-triggered the same
+   crash. Fix: normalise every routine the moment it
+   enters state (load, save, sync) so `log` is always
+   a real object, never undefined.
+══════════════════════════════════════════ */
+const normRoutine=r=>({...r,log:(r.log&&typeof r.log==="object")?r.log:{}});
 const STATUSES=["Todo","In Progress","Review","Done"];
 const SNEXT={"Todo":"In Progress","In Progress":"Review","Review":"Done","Done":"Todo"};
 const SBADGE={"Todo":{bg:"#1e293b",c:"#94a3b8"},"In Progress":{bg:"#2d1f02",c:"#fbbf24"},"Review":{bg:"#0f1f3d",c:"#60a5fa"},"Done":{bg:"#052e16",c:"#4ade80"}};
@@ -347,7 +360,7 @@ const syncCfg=lsGet(LS_SYNC,{dbUrl:"",roomCode:""});
 let S={
   tasks:_loadedTasks,  /* reuse already-loaded tasks — avoids double localStorage read */
   cats:lsGet(LS_CATS,DEFAULT_CATS),
-  routines:lsGet(LS_ROUTINES,SAMPLE_ROUTINES),
+  routines:lsGet(LS_ROUTINES,SAMPLE_ROUTINES).map(normRoutine),
   view:"tasks",filterCat:"All",filterSt:"All",search:"",
   modal:null,expandedIds:new Set(),selectedIds:new Set(),
   toast:null,toastTimer:null,dragId:null,
@@ -423,12 +436,13 @@ const freqLabel=r=>{
    if a routine is due today but not yet logged, today isn't counted as a
    miss (the day isn't over) — we just start counting from yesterday. */
 const currentStreakFor=r=>{
+  const log=r.log||{};
   let d=todayD(),count=0,steps=0;
-  if(isDueOn(r,d)&&!r.log[dStr(d)])d.setDate(d.getDate()-1);
+  if(isDueOn(r,d)&&!log[dStr(d)])d.setDate(d.getDate()-1);
   while(steps<3660){
     steps++;
     if(isDueOn(r,d)){
-      if(r.log[dStr(d)]){count++;d.setDate(d.getDate()-1);}
+      if(log[dStr(d)]){count++;d.setDate(d.getDate()-1);}
       else break;
     } else {
       d.setDate(d.getDate()-1);
@@ -438,7 +452,8 @@ const currentStreakFor=r=>{
 };
 /* longest streak ever, scanning day-by-day from creation date to today */
 const longestStreakFor=r=>{
-  const keys=Object.keys(r.log||{});
+  const log=r.log||{};
+  const keys=Object.keys(log);
   const startStr=r.createdAt||(keys.length?keys.sort()[0]:dStr(todayD()));
   let d=new Date(startStr+"T00:00:00");
   const end=todayD();
@@ -446,7 +461,7 @@ const longestStreakFor=r=>{
   while(d<=end&&steps<3660){
     steps++;
     if(isDueOn(r,d)){
-      if(r.log[dStr(d)]){cur++;if(cur>best)best=cur;}
+      if(log[dStr(d)]){cur++;if(cur>best)best=cur;}
       else cur=0;
     }
     d.setDate(d.getDate()+1);
@@ -455,9 +470,10 @@ const longestStreakFor=r=>{
 };
 /* % of DUE days completed within the last `days` calendar days */
 const completionRateFor=(r,days=30)=>{
+  const log=r.log||{};
   let due=0,done=0,d=todayD();
   for(let i=0;i<days;i++){
-    if(isDueOn(r,d)){due++;if(r.log[dStr(d)])done++;}
+    if(isDueOn(r,d)){due++;if(log[dStr(d)])done++;}
     d.setDate(d.getDate()-1);
   }
   return due?Math.round(done/due*100):0;
@@ -496,7 +512,7 @@ const syncConnect=()=>{
         if(remoteTs>localTs){
           S.tasks=data.tasks;
           if(data.cats&&Array.isArray(data.cats))S.cats=data.cats;
-          if(data.routines&&Array.isArray(data.routines))S.routines=data.routines;
+          if(data.routines&&Array.isArray(data.routines))S.routines=data.routines.map(normRoutine);
           persist();render();
         }
       }
@@ -605,9 +621,9 @@ const saveRoutine=()=>{
   const days=freq==="daily"?[0,1,2,3,4,5,6]
     :[...document.querySelectorAll(".day-pill.active")].map(el=>parseInt(el.dataset.day,10));
   if(freq==="custom"&&days.length===0){showToast("⚠️ Select at least one day");return;}
-  const saved={...r,title,category:gv("rm-cat")||r.category,time:gv("rm-time")||"",
+  const saved=normRoutine({...r,title,category:gv("rm-cat")||r.category,time:gv("rm-time")||"",
     durAmt:parseFloat(gv("rm-duramt"))||0,durUnit:gv("rm-durunit")||"hours",
-    freq,days,note:gv("rm-note")||""};
+    freq,days,note:gv("rm-note")||""});
   const wasNew=S.modal.type==="routine-add";
   S.routines=wasNew?[...S.routines,saved]:S.routines.map(x=>x.id===saved.id?saved:x);
   persist();syncWrite();S.modal=null;render();
@@ -1083,9 +1099,10 @@ const routineModalHtml=()=>{
 };
 const routineCardHtml=r=>{
   const col=cc(r.category);
+  const log=r.log||{};
   const today=todayD(),todayS=dStr(today);
   const dueToday=isDueOn(r,today);
-  const doneToday=!!r.log[todayS];
+  const doneToday=!!log[todayS];
   const streak=currentStreakFor(r),best=longestStreakFor(r);
   const rate=completionRateFor(r,30);
   const total=totalDoneFor(r);
@@ -1096,7 +1113,7 @@ const routineCardHtml=r=>{
     const ds=dStr(d);
     let state;
     if(!isDueOn(r,d))state="off";
-    else if(r.log[ds])state="done";
+    else if(log[ds])state="done";
     else if(ds===todayS)state="pending";
     else state="missed";
     cells.push(`<button class="heat-cell heat-${state}" data-action="toggle-routine" data-id="${esc(r.id)}" data-date="${ds}" title="${d.toLocaleDateString("en-GB",{day:"2-digit",month:"short"})} — ${state==="off"?"not scheduled":state==="done"?"completed":state==="pending"?"due today":"missed"}"></button>`);
@@ -1130,7 +1147,7 @@ const routineCardHtml=r=>{
 const routinesHtml=()=>{
   const rs=S.routines,today=todayD();
   const dueTodayList=rs.filter(r=>isDueOn(r,today));
-  const doneTodayN=dueTodayList.filter(r=>r.log[dStr(today)]).length;
+  const doneTodayN=dueTodayList.filter(r=>(r.log||{})[dStr(today)]).length;
   const best=rs.reduce((acc,r)=>{const s=currentStreakFor(r);return s>acc.s?{s,name:r.title}:acc;},{s:0,name:"—"});
   const avgRate=rs.length?Math.round(rs.reduce((a,r)=>a+completionRateFor(r,30),0)/rs.length):0;
   const kpis=[
